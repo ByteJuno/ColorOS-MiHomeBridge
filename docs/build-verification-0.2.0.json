@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-29",
+  "version": "0.2.0-preview",
+  "version_code": 4,
+  "apk": "ColorOS-MiHomeBridge-0.2.0-preview.apk",
+  "bytes": 2183895,
+  "sha256": "81ea358c4308f3559b97ee6622837a028cd8b0aace02a9ef162f9c4480c0c44f",
+  "jvm": {
+    "tests": 17,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Error": 0,
+    "Warning": 24
+  },
+  "firmware": {
+    "checks": 44,
+    "passed": 44
+  },
+  "signature_v2_verified": true,
+  "certificate_sha256": "e1631c0dcb618209c1e81f74c4b03a198a457314bb2141c3931d903d1cab84c0",
+  "intermediate_build_native_cards_seen_on_device": true,
+  "final_build_installed_on_device": true,
+  "physical_device_actions_tested": false,
+  "restore_tested": false,
+  "native_custom_icons_tested": true,
+  "offline_feedback_tested": true,
+  "native_detail_launch_tested": true,
+  "native_detail_launch_passed": false,
+  "native_detail_launch_failure": "Android 17 BAL_BLOCK; corrected in 0.2.1-preview"
+}

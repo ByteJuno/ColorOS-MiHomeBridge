@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "firmware": "PLK110_17.0.0.105(CN01)",
+  "mihome_version": "11.8.707",
+  "systemui_version": "17.99.02",
+  "artifacts": [
+    {
+      "file": "MiHome.apk",
+      "bytes": 239364085,
+      "sha256": "60faf083a7f1874423b77d034d2fbd11ff7f97aafeb656f35333dbd5e498ac28",
+      "checks": [
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/ControlUtils;",
+          "expected": "initService\\(Landroid/content/Context;Z\\)V",
+          "matched": [
+            "initService(Landroid/content/Context;Z)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/ControlUtils;",
+          "expected": "readAllDeviceList\\(Landroid/content/Context;Ljava/lang/String;L[^;]+;\\)V",
+          "matched": [
+            "readAllDeviceList(Landroid/content/Context;Ljava/lang/String;L_m_j/h46;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/ControlUtils;",
+          "expected": "readSuggestDeviceList\\(Landroid/content/Context;Ljava/lang/String;IIL[^;]+;\\)V",
+          "matched": [
+            "readSuggestDeviceList(Landroid/content/Context;Ljava/lang/String;IIL_m_j/h46;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/MiControlsProviderService;",
+          "expected": "createPublisherForAllAvailable\\(\\)Ljava/util/concurrent/Flow\\$Publisher;",
+          "matched": [
+            "createPublisherForAllAvailable()Ljava/util/concurrent/Flow$Publisher;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/MiControlsProviderService$2;",
+          "expected": "onReadyRequest\\(J\\)V",
+          "matched": [
+            "onReadyRequest(J)V"
+          ],
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "file": "SystemUI.apk",
+      "bytes": 98816692,
+      "sha256": "a06bf8e0046a5e6a19347e09064e6ce8f79e0e963c78c8ce65f0fbf56d770e62",
+      "checks": [
+        {
+          "class": "Lcom/android/systemui/controls/dagger/ControlsComponent;",
+          "expected": "<init>\\(Z.+\\)V",
+          "matched": [
+            "<init>(ZLdagger/Lazy;Ldagger/Lazy;Ldagger/Lazy;Lcom/android/internal/widget/LockPatternUtils;Lcom/android/systemui/statusbar/policy/KeyguardStateController;Lcom/android/systemui/settings/UserTracker;Lcom/android/systemui/controls/settings/ControlsSettingsRepository;Ljava/util/Optional;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/dagger/ControlsComponent;",
+          "expected": "getControlsController\\(\\)Ljava/util/Optional;",
+          "matched": [
+            "getControlsController()Ljava/util/Optional;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/dagger/ControlsComponent;",
+          "expected": "getControlsUiController\\(\\)Ljava/util/Optional;",
+          "matched": [
+            "getControlsUiController()Ljava/util/Optional;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/ui/ControlsUiControllerImpl;",
+          "expected": "resolveActivity\\(\\)Ljava/lang/Class;",
+          "matched": [
+            "resolveActivity()Ljava/lang/Class;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/systemui/qs/tiles/OplusDeviceControlsTile;",
+          "expected": "isAvailable\\(\\)Z",
+          "matched": [
+            "isAvailable()Z"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/systemui/qs/tileimpl/OplusQSFactoryImpl;",
+          "expected": "createTile\\(Ljava/lang/String;\\).+",
+          "matched": [
+            "createTile(Ljava/lang/String;)Lcom/android/systemui/plugins/qs/QSTile;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/qs/pipeline/domain/interactor/CurrentTilesInteractorImpl;",
+          "expected": "addTile\\(Lcom/android/systemui/qs/pipeline/shared/TileSpec;I\\)V",
+          "matched": [
+            "addTile(Lcom/android/systemui/qs/pipeline/shared/TileSpec;I)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/qs/pipeline/domain/interactor/CurrentTilesInteractorImpl;",
+          "expected": "removeTiles\\(Ljava/util/Collection;\\)V",
+          "matched": [
+            "removeTiles(Ljava/util/Collection;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/qs/pipeline/domain/interactor/CurrentTilesInteractorImpl;",
+          "expected": "getCurrentTilesSpecs\\(\\)Ljava/util/List;",
+          "matched": [
+            "getCurrentTilesSpecs()Ljava/util/List;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/qs/pipeline/shared/TileSpec$Companion;",
+          "expected": "create\\(Ljava/lang/String;\\)Lcom/android/systemui/qs/pipeline/shared/TileSpec;",
+          "matched": [
+            "create(Ljava/lang/String;)Lcom/android/systemui/qs/pipeline/shared/TileSpec;"
+          ],
+          "ok": true
+        }
+      ],
+      "ok": true
+    }
+  ]
+}

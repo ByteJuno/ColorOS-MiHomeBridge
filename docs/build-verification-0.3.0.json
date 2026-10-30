@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-30",
+  "version": "0.3.0-preview",
+  "version_code": 7,
+  "apk": "ColorOS-MiHomeBridge-0.3.0-preview.apk",
+  "bytes": 2219003,
+  "sha256": "03488bb5ba6471aad3acf2511bc36e9a76ea4da65d1e4ec6136b71d1596fe83b",
+  "jvm": {
+    "tests": 29,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Error": 0,
+    "Warning": 28
+  },
+  "firmware": {
+    "checks": 60,
+    "passed": 60,
+    "baseline": "native-center-baseline-20261030.json",
+    "model": "PLK110",
+    "build": "PLK110_17.0.0.105(CN01)",
+    "systemui": "17.99.02",
+    "mihome": "11.9.625",
+    "mydevices": "17.25.10"
+  },
+  "signature_v2_verified": true,
+  "zipalign_verified": true,
+  "certificate_sha256": "e1631c0dcb618209c1e81f74c4b03a198a457314bb2141c3931d903d1cab84c0",
+  "final_build_installed_on_device": true,
+  "installed_apk_sha256_verified": true,
+  "phone_download_copy_sha256_verified": true,
+  "device_center": {
+    "activity": "com.oplus.mydevices.deviceui.devicecard.DeviceCardHomeActivity",
+    "original_devices": 4,
+    "mihome_devices": 3,
+    "merged_devices": 7,
+    "custom_icons": 3,
+    "online_devices": 2,
+    "unavailable_devices": 1,
+    "tap_detail_passed": true,
+    "long_press_detail_passed": true,
+    "reentry_without_duplicates_passed": true,
+    "disable_restores_originals_passed": true,
+    "reenable_passed": true,
+    "settings_open_center_passed": true,
+    "final_framework_result_receiver_transport_passed": true
+  },
+  "control_center": {
+    "native_small_cards_loaded": true,
+    "full_panel_state_loaded": true,
+    "native_over_full_panel_passed": true,
+    "full_panel_after_native_passed": true
+  },
+  "new_crash_after_final_transport_install_observed": false,
+  "physical_device_actions_tested": false,
+  "scenes_tested": false,
+  "lockscreen_interaction_tested": false,
+  "system_user_switch_tested": false,
+  "native_drag_reorder_tested": false,
+  "full_restore_repeated_in_0_3_0": false,
+  "previous_full_restore_record": "build-verification-0.2.2.json",
+  "background_setting": {
+    "package": "com.xiaomi.smarthome",
+    "mode": "allow_all_background",
+    "retained": true
+  },
+  "remaining_limits": [
+    "native big cards open MiHome details; property editor is not embedded",
+    "physical device actions and scenes",
+    "secure lock interaction and user switching",
+    "native drag reorder, classic theme and other firmware"
+  ]
+}

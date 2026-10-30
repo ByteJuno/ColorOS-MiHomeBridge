@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-29",
+  "version": "0.2.1-preview",
+  "version_code": 5,
+  "apk": "ColorOS-MiHomeBridge-0.2.1-preview.apk",
+  "bytes": 2184451,
+  "sha256": "5fc29b3333bfe704fe84e7c168074f8ba8a3a96063bfdfd36174053895764e7a",
+  "jvm": {
+    "tests": 17,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Error": 0,
+    "Warning": 24
+  },
+  "firmware": {
+    "checks": 44,
+    "passed": 44
+  },
+  "signature_v2_verified": true,
+  "certificate_sha256": "e1631c0dcb618209c1e81f74c4b03a198a457314bb2141c3931d903d1cab84c0",
+  "intermediate_build_native_cards_seen_on_device": true,
+  "final_build_installed_on_device": true,
+  "physical_device_actions_tested": false,
+  "restore_tested": true,
+  "native_custom_icons_tested": true,
+  "offline_feedback_tested": true,
+  "native_detail_launch_tested": true,
+  "native_detail_launch_passed": true,
+  "native_detail_launch_failure": null,
+  "pending_device_checks": [],
+  "installed_apk_sha256_verified": true,
+  "restore_passed": false,
+  "superseded_by": "0.2.2-preview",
+  "observed_limits": [
+    "Hans-frozen provider stopped responding",
+    "stale host preference rejected restore"
+  ]
+}

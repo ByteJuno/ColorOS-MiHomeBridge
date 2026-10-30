@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-30",
+  "version": "0.2.2-preview",
+  "version_code": 6,
+  "apk": "ColorOS-MiHomeBridge-0.2.2-preview.apk",
+  "bytes": 2188163,
+  "sha256": "521b0943dccf2d8ab66f08f0216b76fbdd84f28c2dffd3601e8608acd28e0671",
+  "jvm": {
+    "tests": 23,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Error": 0,
+    "Warning": 28
+  },
+  "firmware": {
+    "checks": 46,
+    "passed": 46,
+    "baseline": "native-baseline-20261030.json",
+    "model": "PLK110",
+    "build": "PLK110_17.0.0.105(CN01)",
+    "systemui": "17.99.02",
+    "mihome": "11.9.625"
+  },
+  "signature_v2_verified": true,
+  "certificate_sha256": "e1631c0dcb618209c1e81f74c4b03a198a457314bb2141c3931d903d1cab84c0",
+  "final_build_installed_on_device": true,
+  "installed_apk_sha256_verified": true,
+  "native_custom_icons_tested": true,
+  "offline_feedback_tested": true,
+  "native_detail_launch_tested": true,
+  "native_detail_launch_passed": true,
+  "full_panel_state_loaded": true,
+  "native_over_full_panel_passed": true,
+  "full_panel_after_native_panel_passed": true,
+  "restore_tested": true,
+  "restore_passed": true,
+  "original_native_cards_restored": true,
+  "recovery_records_cleared": true,
+  "reenable_after_restore_tested": true,
+  "selected_devices_reselected": 3,
+  "expired_command_rejection_seen_on_device": true,
+  "physical_device_actions_tested": false,
+  "scenes_tested": false,
+  "lockscreen_interaction_tested": false,
+  "system_user_switch_tested": false,
+  "background_setting": {
+    "package": "com.xiaomi.smarthome",
+    "before": "smart_optimization",
+    "after": "allow_all_background",
+    "retained": true,
+    "reason": "Hans froze main and controls provider; service responded after allowing background activity"
+  },
+  "screen_off_timeout_restored_ms": 1800000,
+  "remaining_limits": [
+    "physical appliance actions and scenes",
+    "secure-lock interaction",
+    "user switching",
+    "classic control center and other firmware"
+  ]
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <permission android:name="io.github.coloros.mihomebridge.permission.COMMAND" android:protectionLevel="signature" />
+    <uses-permission android:name="io.github.coloros.mihomebridge.permission.COMMAND" />
+    <queries>
+        <package android:name="com.xiaomi.smarthome" />
+        <package android:name="com.android.systemui" />
+        <package android:name="com.heytap.mydevices" />
+    </queries>
+    <application android:name=".BridgeApplication" android:allowBackup="false"
+        android:label="米家控制中心桥接" android:icon="@drawable/ic_bridge"
+        android:supportsRtl="true" android:theme="@style/AppTheme">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
