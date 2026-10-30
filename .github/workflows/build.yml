@@ -21,17 +21,24 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # The runner image already ships the Android SDK. Do not use
+      # android-actions/setup-android here: it runs `sdkmanager tools`, and that
+      # package no longer exists in the repository, so the step fails on its own.
+      # API 37 is published as `platforms;android-37.0`, not `platforms;android-37`.
       - name: Install platform 37
-        run: sdkmanager --install "platforms;android-37" "build-tools;37.0.0"
+        run: |
+          set -euo pipefail
+          SDKMANAGER=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | head -n 1)
+          echo "using $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+          ls "$ANDROID_HOME/platforms"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --console=plain
+        run: ./gradlew :app:test --console=plain
 
       - name: Lint
         run: ./gradlew :app:lintDebug --console=plain
@@ -48,5 +55,5 @@ jobs:
           name: reports
           path: |
             app/build/reports/lint-results-debug.html
-            app/build/test-results/testDebugUnitTest/*.xml
+            app/build/test-results/**
           if-no-files-found: ignore
