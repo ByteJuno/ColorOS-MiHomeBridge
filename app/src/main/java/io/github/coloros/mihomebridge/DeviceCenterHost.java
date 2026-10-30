@@ -110,7 +110,8 @@ final class DeviceCenterHost extends BroadcastReceiver {
             if (drawable == null || images.get(id) != request || !enabled.getAsBoolean()) return;
             try {
                 int w = Math.max(1, drawable.getIntrinsicWidth()), h = Math.max(1, drawable.getIntrinsicHeight());
-                for (int size : new int[]{128, 96, 64, 32}) {
+                // Encode at the size the card actually draws, then fall back only if the budget is tight.
+                for (int size : DeviceCenterPolicy.iconSteps(context.getResources().getDisplayMetrics().density)) {
                     float scale = (float) size / Math.max(w, h);
                     Bitmap bitmap = Bitmap.createBitmap(Math.max(1, Math.round(w * scale)), Math.max(1, Math.round(h * scale)), Bitmap.Config.ARGB_8888);
                     drawable.setBounds(0, 0, bitmap.getWidth(), bitmap.getHeight());
@@ -118,7 +119,12 @@ final class DeviceCenterHost extends BroadcastReceiver {
                     ByteArrayOutputStream stream = new ByteArrayOutputStream();
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
                     bitmap.recycle();
-                    if (stream.size() <= DeviceCenterPolicy.MAX_ICON_BYTES) { request.png = stream.toByteArray(); break; }
+                    if (stream.size() <= DeviceCenterPolicy.MAX_ICON_BYTES) {
+                        request.png = stream.toByteArray();
+                        // The snapshot that asked for this image already returned without it.
+                        space.notifyCenter();
+                        break;
+                    }
                 }
             } catch (RuntimeException error) { failure.accept("Device center icon decode failed", error); }
         }, main);

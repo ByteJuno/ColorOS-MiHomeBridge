@@ -5,8 +5,11 @@ import android.app.ActivityOptions;
 import android.app.BroadcastOptions;
 import android.app.KeyguardManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -16,6 +19,7 @@ import android.os.ResultReceiver;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
@@ -33,6 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.BooleanSupplier;
 
 /** Adds transient MiHome DTOs to MyDevices' real home-card adapter. Never writes its device database. */
 final class NativeDeviceCenter {
@@ -40,6 +45,7 @@ final class NativeDeviceCenter {
     private static final String DOMAIN = "com.oplus.mydevices.domain.entities.";
     private static final String ICON = "coloros-mihome-icon:";
     private final XposedModule module;
+    private final BooleanSupplier prepend;
     private final BiConsumer<String, Throwable> failure;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Map<Activity, Page> pages = new WeakHashMap<>();
@@ -62,13 +68,16 @@ final class NativeDeviceCenter {
         final String token = UUID.randomUUID().toString();
         List<Object> original;
         List<Row> rows = List.of();
-        boolean empty, noNetwork, running, waiting;
-        int generation, request;
+        boolean empty, noNetwork, running, waiting, dirty;
+        int generation, request, problems;
         Runnable poll;
+        BroadcastReceiver receiver;
         Page(Activity activity) { this.activity = new WeakReference<>(activity); }
     }
 
-    NativeDeviceCenter(XposedModule module, BiConsumer<String, Throwable> failure) { this.module = module; this.failure = failure; }
+    NativeDeviceCenter(XposedModule module, BooleanSupplier prepend, BiConsumer<String, Throwable> failure) {
+        this.module = module; this.prepend = prepend; this.failure = failure;
+    }
 
     void install(ClassLoader loader) throws Exception {
         Class<?> home = Class.forName(HOME, false, loader);
@@ -119,7 +128,7 @@ final class NativeDeviceCenter {
             try {
                 List<Object> additions = new ArrayList<>();
                 for (Row row : page.rows) additions.add(card(row));
-                merged = DeviceCenterPolicy.merge(original, additions, NativeDeviceCenter::id);
+                merged = DeviceCenterPolicy.merge(original, additions, NativeDeviceCenter::id, prepend.getAsBoolean());
             } catch (Exception error) { failure.accept("Native device center merge failed", error); }
             return chain.proceed(new Object[]{merged, page.rows.isEmpty() ? page.empty : false, page.noNetwork});
         });
@@ -183,7 +192,14 @@ final class NativeDeviceCenter {
         return new GestureDetector(view.getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDown(MotionEvent event) { return true; }
             @Override public boolean onSingleTapUp(MotionEvent event) { View v = target.get(); return v != null && v.performClick(); }
-            @Override public void onLongPress(MotionEvent event) { View v = target.get(); if (v != null) { v.setPressed(false); v.performLongClick(); } }
+            @Override public void onLongPress(MotionEvent event) {
+                View v = target.get();
+                if (v == null) return;
+                // Match the native card: the same tick the system's own long press would give.
+                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                v.setPressed(false);
+                v.performLongClick();
+            }
         });
     }
 
@@ -191,23 +207,67 @@ final class NativeDeviceCenter {
 
     private void start(Page page) {
         if (page.running) return;
-        page.running = true; page.waiting = false; page.generation++;
+        page.running = true; page.waiting = false; page.dirty = false;
+        page.problems = 0; page.generation++;
         page.rows = List.of(); refresh(page);
+        Activity activity = page.activity.get();
+        if (activity != null) listen(activity, page);
         page.poll = () -> {
             if (!valid(page)) return;
             if (!page.waiting) snapshot(page);
-            main.postDelayed(page.poll, 1200);
+            main.postDelayed(page.poll, RefreshPolicy.heartbeatDelay(page.problems));
         };
-        page.poll.run();
+        snapshot(page);
+        main.postDelayed(page.poll, RefreshPolicy.HEARTBEAT_MS);
+    }
+
+    /** SystemUI announces every MiHome change; the heartbeat only heals a lost broadcast. */
+    private void listen(Activity activity, Page page) {
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context context, Intent intent) {
+                // Only SystemUI publishes MiHome state; the payload carries no data anyway.
+                int sender = getSentFromUid();
+                boolean trusted = BridgeContract.PUSH.equals(intent.getAction()) && fromSystemUi(context, sender);
+                if (!trusted || !valid(page)) {
+                    module.log(Log.DEBUG, "MiHomeBridge", "center push ignored: from=" + sender
+                            + ", trusted=" + trusted + ", valid=" + valid(page));
+                    return;
+                }
+                if (RefreshPolicy.fetchOnPush(page.running, page.waiting)) {
+                    main.removeCallbacks(page.poll);
+                    snapshot(page);
+                    main.postDelayed(page.poll, RefreshPolicy.heartbeatDelay(page.problems));
+                } else page.dirty = true;
+            }
+        };
+        try {
+            activity.registerReceiver(receiver, new IntentFilter(BridgeContract.PUSH), null, main, Context.RECEIVER_EXPORTED);
+            page.receiver = receiver;
+        } catch (RuntimeException error) { failure.accept("Cannot listen for device center updates", error); }
+    }
+
+    private static boolean fromSystemUi(Context context, int sender) {
+        try {
+            if (sender < 0) return false;
+            return sender == android.os.Process.SYSTEM_UID || sender
+                    == context.getPackageManager().getPackageUid(BridgeContract.SYSTEMUI, PackageManager.PackageInfoFlags.of(0));
+        } catch (Exception error) { return false; }
     }
 
     private void stop(Page page) {
         if (!page.running) return;
-        page.running = false; page.generation++;
+        page.running = false; page.generation++; page.dirty = false;
         if (page.poll != null) main.removeCallbacks(page.poll);
+        page.poll = null;
         Activity activity = page.activity.get();
+        if (activity != null && page.receiver != null) {
+            try { activity.unregisterReceiver(page.receiver); }
+            catch (IllegalArgumentException ignored) { /* Already unregistered by the host. */ }
+        }
+        page.receiver = null;
         if (activity != null) send(activity, page, BridgeContract.CENTER_CLOSE, null, null);
-        page.rows = List.of(); images = Map.of();
+        page.rows = List.of();
+        index();
     }
 
     private boolean valid(Page page) {
@@ -224,6 +284,7 @@ final class NativeDeviceCenter {
             @Override protected void onReceiveResult(int code, Bundle data) {
                 if (!valid(page) || epoch != page.generation || request != page.request) return;
                 page.waiting = false;
+                page.problems = code == 0 ? 0 : Math.min(RefreshPolicy.MAX_BACKOFF, page.problems + 1);
                 try {
                     List<Row> next = new ArrayList<>();
                     if (code == 0 && data != null && data.getBoolean(BridgeContract.ENABLED)
@@ -243,7 +304,8 @@ final class NativeDeviceCenter {
                                 else {
                                     BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds = true;
                                     BitmapFactory.decodeByteArray(png, 0, png.length, bounds);
-                                    if (bounds.outWidth > 0 && bounds.outWidth <= 128 && bounds.outHeight > 0 && bounds.outHeight <= 128)
+                                    if (bounds.outWidth > 0 && bounds.outWidth <= DeviceCenterPolicy.MAX_ICON_PX
+                                            && bounds.outHeight > 0 && bounds.outHeight <= DeviceCenterPolicy.MAX_ICON_PX)
                                         bitmap = BitmapFactory.decodeByteArray(png, 0, png.length);
                                 }
                             }
@@ -253,12 +315,19 @@ final class NativeDeviceCenter {
                     }
                     replace(page, next);
                 } catch (RuntimeException error) { replace(page, List.of()); failure.accept("Device center snapshot rejected", error); }
+                if (page.dirty) {
+                    // Pushes that landed mid-request collapse into a single follow-up fetch.
+                    page.dirty = false;
+                    main.postDelayed(() -> { if (valid(page) && !page.waiting) snapshot(page); }, RefreshPolicy.COALESCE_MS);
+                }
             }
         };
         send(activity, page, BridgeContract.CENTER_SNAPSHOT, null, reply);
         main.postDelayed(() -> {
             if (valid(page) && epoch == page.generation && request == page.request && page.waiting) {
-                page.waiting = false; page.request++; replace(page, List.of());
+                page.waiting = false; page.request++;
+                // Keep whatever the user already sees; a slow round trip must not blank the list.
+                page.problems = Math.min(RefreshPolicy.MAX_BACKOFF, page.problems + 1);
             }
         }, BridgeContract.COMMAND_TIMEOUT_MS);
     }
@@ -268,12 +337,17 @@ final class NativeDeviceCenter {
         if (same) for (int i = 0; i < next.size(); i++) if (!next.get(i).same(page.rows.get(i))) { same = false; break; }
         if (same) return;
         page.rows = List.copyOf(next);
-        Map<String, Row> index = new HashMap<>();
-        for (Row row : next) index.put(row.id, row);
-        images = index;
+        index();
         refresh(page);
         module.log(Log.INFO, "MiHomeBridge", "Device center refreshed: native=" + (page.original == null ? 0 : page.original.size())
                 + ", mihome=" + next.size() + ", icons=" + next.stream().filter(row -> row.bitmap != null).count());
+    }
+
+    /** Rebuilds the icon index from every live page, so one page cannot drop another's bitmaps. */
+    private void index() {
+        Map<String, Row> next = new HashMap<>();
+        for (Page page : new ArrayList<>(pages.values())) for (Row row : page.rows) next.put(row.id, row);
+        images = next;
     }
 
     private void refresh(Page page) {

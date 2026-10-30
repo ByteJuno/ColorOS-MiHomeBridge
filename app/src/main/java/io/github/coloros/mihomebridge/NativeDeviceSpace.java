@@ -1,7 +1,9 @@
 package io.github.coloros.mihomebridge;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.app.BroadcastOptions;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -13,6 +15,7 @@ import android.app.PendingIntent;
 import android.graphics.drawable.Icon;
 import android.service.controls.Control;
 import android.service.controls.DeviceTypes;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import io.github.libxposed.api.XposedModule;
@@ -34,6 +37,7 @@ final class NativeDeviceSpace {
     private static final String SDK = "com.oplus.deviceplugin.sdk.";
     private final XposedModule module;
     private final BooleanSupplier enabled;
+    private final BooleanSupplier tapToggles;
     private final BiConsumer<String, Throwable> failure;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Map<Object, Object> listeners = new WeakHashMap<>();
@@ -44,19 +48,53 @@ final class NativeDeviceSpace {
     private final DeviceCenterPolicy.Leases centerLeases = new DeviceCenterPolicy.Leases();
     private final Runnable expireCenter = this::expireCenter;
     private final Runnable refresh = this::refreshPanels;
+    private final Runnable announce = this::pushCenter;
     private Class<?> panelInfo, panelState, deviceType, statusType, itemType, connectType, coordinationType;
+    private Class<?> batteryType, batteryInfo;
     private Constructor<?> panelConstructor, deviceConstructor;
     private Method editMode;
     private volatile boolean installed;
     private volatile int boundCards;
 
-    NativeDeviceSpace(XposedModule module, BooleanSupplier enabled, Supplier<Object> controls,
-                      BiConsumer<String, Throwable> failure) {
-        this.module = module; this.enabled = enabled; this.failure = failure;
+    NativeDeviceSpace(XposedModule module, BooleanSupplier enabled, BooleanSupplier tapToggles,
+                      Supplier<Object> controls, BiConsumer<String, Throwable> failure) {
+        this.module = module; this.enabled = enabled; this.tapToggles = tapToggles;
+        this.failure = failure;
         session = new MiHomeSession(enabled, controls, failure, () -> {
             main.removeCallbacks(refresh);
             main.postDelayed(refresh, 60);
+            // The native device list owns its own page; tell it instead of letting it poll.
+            notifyCenter();
         });
+    }
+
+    /**
+     * Asks the open list page to re-read. Covers both MiHome state changes and icons that
+     * finish decoding after the snapshot that requested them already returned.
+     */
+    void notifyCenter() {
+        if (!centerLeases.active(SystemClock.elapsedRealtime())) return;
+        main.removeCallbacks(announce);
+        main.postDelayed(announce, 60);
+    }
+
+    /** SystemUI is the only writer of MiHome state, so it announces changes to the list page. */
+    private void pushCenter() {
+        Context context = session.context();
+        boolean active = centerLeases.active(SystemClock.elapsedRealtime());
+        if (context == null || !active) {
+            module.log(Log.DEBUG, "MiHomeBridge", "center push skipped: active=" + active + ", context=" + (context != null));
+            return;
+        }
+        try {
+            // Without a shared identity the receiver sees sentFromUid = -1 and must reject it.
+            BroadcastOptions options = BroadcastOptions.makeBasic();
+            options.setShareIdentityEnabled(true);
+            options.setDeferralPolicy(BroadcastOptions.DEFERRAL_POLICY_NONE);
+            context.sendBroadcast(new Intent(BridgeContract.PUSH).setPackage(BridgeContract.MYDEVICES)
+                    .addFlags(Intent.FLAG_RECEIVER_FOREGROUND), null, options.toBundle());
+            module.log(Log.DEBUG, "MiHomeBridge", "center push sent");
+        } catch (RuntimeException error) { failure.accept("Cannot notify the device center", error); }
     }
 
     void install(ClassLoader loader) throws Exception {
@@ -70,6 +108,14 @@ final class NativeDeviceSpace {
                 String.class, statusType, String.class, int.class, List.class, itemType, connectType, coordinationType,
                 int.class, int.class, int.class, int.class, int.class, int.class, int.class, Boolean.class);
         statusType.getConstructor(String.class, String.class, Integer.class);
+        // Optional: the battery ring is only fed when MiHome reports a level in its status text.
+        try {
+            batteryType = type(loader, "entity.BatteryType");
+            batteryInfo = type(loader, "entity.BatteryInfo");
+            batteryInfo.getConstructor(batteryType, int.class, boolean.class);
+        } catch (ClassNotFoundException | NoSuchMethodException error) {
+            batteryType = null; batteryInfo = null;
+        }
         editMode = type(loader, "utils.PlatformUtils").getDeclaredMethod("getIsEditMode");
         // Resolve every hook before installing any. Only this firmware's explicit shapes are supported.
         Method initial = type(loader, "presenter.l").getDeclaredMethod("b");
@@ -168,7 +214,7 @@ final class NativeDeviceSpace {
                     String controlId = id.substring(DeviceSpacePolicy.PREFIX.length());
                     view.setContentDescription(HostReflect.get(chain.getArg(0), "getName") + "，"
                             + HostReflect.get(HostReflect.get(chain.getArg(0), "getDeviceStatus"), "getMainStatus"));
-                    view.setOnClickListener(v -> { if (!editing()) session.click(controlId, false); });
+                    view.setOnClickListener(v -> { if (!editing()) session.click(controlId, !tapToggles.getAsBoolean()); });
                     view.setOnLongClickListener(v -> {
                         if (editing()) return false;
                         session.click(controlId, true); return true;
@@ -193,8 +239,11 @@ final class NativeDeviceSpace {
                     containsMiHome = true; break;
                 }
                 if (containsMiHome) {
-                    int limit = DeviceSpacePolicy.capacity((Integer) HostReflect.get(args[3], "getColSpan"),
-                            (Integer) HostReflect.get(args[3], "getRowSpan"));
+                    int columns = (Integer) HostReflect.get(args[3], "getColSpan");
+                    int rows = (Integer) HostReflect.get(args[3], "getRowSpan");
+                    int limit = DeviceSpacePolicy.capacity(columns, rows);
+                    module.log(Log.DEBUG, "MiHomeBridge", "device space submit: size=" + list.size()
+                            + ", limit=" + limit);
                     if (list.size() > limit) args[1] = new ArrayList<>(list.subList(0, limit));
                 }
             } catch (Exception error) { failure.accept("Device Space capacity check failed", error); }
@@ -212,6 +261,8 @@ final class NativeDeviceSpace {
     private void panelVisible(Object panel, boolean visible) {
         synchronized (panels) {
             if (visible) panels.put(panel, true); else panels.remove(panel);
+            module.log(Log.DEBUG, "MiHomeBridge", "device space panel " + (visible ? "resumed" : "paused")
+                    + ", active=" + panels.size());
             updateVisibility();
         }
     }
@@ -262,7 +313,14 @@ final class NativeDeviceSpace {
         List<Object> combined = DeviceSpacePolicy.merge(new ArrayList<>(existing), additions, item -> {
             try { return (String) HostReflect.get(item, "getDeviceId"); }
             catch (Exception error) { throw new IllegalStateException(error); }
+        }, true); // The panel is trimmed to 1-3 card slots, so injected cards must lead to stay visible.
+        // Then push anything that cannot be acted on behind, so the slots go to live devices.
+        combined = DeviceSpacePolicy.reachableFirst(combined, item -> {
+            try { return (Integer) HostReflect.get(item, "getDeviceState"); }
+            catch (Exception error) { return null; }
         });
+        module.log(Log.DEBUG, "MiHomeBridge", "device space merge: native=" + existing.size()
+                + ", mihome=" + additions.size() + ", out=" + combined.size());
         return panelConstructor.newInstance(HostReflect.enumValue(panelState, "DEVICE_LIST"), combined);
     }
 
@@ -271,13 +329,25 @@ final class NativeDeviceSpace {
         boolean ready = control != null && control.getStatus() == Control.STATUS_OK;
         boolean on = ready && MiHomeSession.isOn(control);
         String text = statusText(entry);
+        Integer event = DeviceSpacePolicy.eventType(entry.pending(), entry.message(), control != null, ready);
         Object status = statusType.getConstructor(String.class, String.class, Integer.class)
-                .newInstance(text, entry.subtitle().isBlank() ? "米家" : "米家 · " + entry.subtitle(), null);
+                .newInstance(text, entry.subtitle().isBlank() ? "米家" : "米家 · " + entry.subtitle(), event);
         return deviceConstructor.newInstance(DeviceSpacePolicy.PREFIX + entry.id(),
-                HostReflect.enumValue(deviceType, nativeType(entry.type())), null, List.of(), Map.of(),
+                HostReflect.enumValue(deviceType, nativeType(entry.type())), null, battery(text), Map.of(),
                 entry.title(), status, "", ready ? (on ? 1 : 2) : 3, List.of(),
                 HostReflect.enumValue(itemType, "SINGLE"), HostReflect.enumValue(connectType, ready ? "ON_LINE" : "OFF_LINE"),
                 HostReflect.enumValue(coordinationType, "DEFAULT"), 0, 0, 0, 0, 0, 0, 0, false);
+    }
+
+    /** Battery list the native card renders on its own; empty unless MiHome reports a level. */
+    private List<Object> battery(String text) {
+        int percent = DeviceSpacePolicy.batteryPercent(text);
+        if (percent < 0 || batteryInfo == null) return List.of();
+        try {
+            Object single = HostReflect.enumValue(batteryType, "SINGLE");
+            return List.of(batteryInfo.getConstructor(batteryType, int.class, boolean.class)
+                    .newInstance(single, percent, false));
+        } catch (Exception error) { return List.of(); }
     }
 
     static String statusText(MiHomeSession.Entry entry) {

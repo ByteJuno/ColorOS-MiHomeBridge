@@ -85,6 +85,8 @@ final class MiHomeSession {
     }
     boolean isVisible() { return visible; }
     boolean isReady() { return bindingSeed != null; }
+    /** SystemUI context captured from the system's own binding controller. */
+    Context context() { return context; }
 
     int currentUserId() {
         try { Object owner = controller(); return owner == null ? -1 : (Integer) HostReflect.get(owner, "getCurrentUserId"); }

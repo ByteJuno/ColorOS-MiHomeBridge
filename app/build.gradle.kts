@@ -1,4 +1,4 @@
-import java.util.Properties
+﻿import java.util.Properties
 
 plugins { id("com.android.application") }
 val moduleSigning = Properties().apply {
@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.coloros.mihomebridge"
         minSdk = 37
         targetSdk = 37
-        versionCode = 7
-        versionName = "0.3.0-preview"
+        versionCode = 9
+        versionName = "0.4.1-preview"
     }
     signingConfigs {
         if (moduleSigning.isNotEmpty()) create("module") {

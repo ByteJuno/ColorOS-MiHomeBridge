@@ -41,21 +41,27 @@ public final class BridgeModule extends XposedModule {
     private final ThreadLocal<Boolean> providerRequest = ThreadLocal.withInitial(() -> false);
 
     @Override public void onPackageLoaded(PackageLoadedParam param) {
-        if (!param.isFirstPackage() || Build.VERSION.SDK_INT != 37) return;
+        if (!param.isFirstPackage() || Build.VERSION.SDK_INT < BridgeContract.MIN_SDK) return;
         String pkg = param.getPackageName();
         if (!pkg.equals(BridgeContract.MIHOME) && !pkg.equals(BridgeContract.SYSTEMUI) && !pkg.equals(BridgeContract.MYDEVICES)) return;
         try {
             preferences = getRemotePreferences(BridgeContract.PREFS);
             ClassLoader loader = param.getDefaultClassLoader();
             if (pkg.equals(BridgeContract.MYDEVICES)) {
-                new NativeDeviceCenter(this, this::failure).install(loader);
+                new NativeDeviceCenter(this, this::placement, this::failure).install(loader);
                 log(Log.INFO, TAG, "Native device center hooks installed");
                 return;
             }
-            if (pkg.equals(BridgeContract.MIHOME)) installMiHome(loader);
-            else {
-                captureControls(loader);
-                nativeSpace = new NativeDeviceSpace(this, this::enabled, () -> controlsComponent.get(), this::failure);
+            // Each injection domain is resolved and hooked on its own, so one renamed host
+            // class degrades a single feature instead of silently disabling the whole module.
+            if (pkg.equals(BridgeContract.MIHOME)) {
+                try { installMiHome(loader); }
+                catch (Throwable error) { failure("MiHome provider hook skipped", error); }
+            } else {
+                try { captureControls(loader); }
+                catch (Throwable error) { failure("Controls component not available", error); }
+                nativeSpace = new NativeDeviceSpace(this, this::enabled, this::tapToggles,
+                        () -> controlsComponent.get(), this::failure);
                 try { nativeSpace.install(loader); }
                 catch (Throwable error) { failure("Native Device Space is not compatible", error); }
             }
@@ -73,6 +79,22 @@ public final class BridgeModule extends XposedModule {
         } catch (Throwable error) {
             failure("Unsupported host shape: " + pkg, error);
         }
+    }
+
+    /** Settings choice shared by the Device Space panel and the native device list. */
+    private boolean placement() {
+        try {
+            return preferences != null
+                    && BridgeContract.PREPEND.equals(preferences.getString(BridgeContract.PLACEMENT, BridgeContract.APPEND));
+        } catch (RuntimeException error) { return false; }
+    }
+
+    /** Native ColorOS cards open a detail page on tap; MiHome cards default to a direct toggle. */
+    private boolean tapToggles() {
+        try {
+            return preferences == null
+                    || !BridgeContract.TAP_DETAILS.equals(preferences.getString(BridgeContract.TAP, BridgeContract.TAP_TOGGLE));
+        } catch (RuntimeException error) { return true; }
     }
 
     private boolean enabled() {
@@ -349,9 +371,8 @@ public final class BridgeModule extends XposedModule {
         try {
             var pm = context.getPackageManager();
             var info = pm.getServiceInfo(service(), PackageManager.ComponentInfoFlags.of(0));
-            int state = pm.getComponentEnabledSetting(service());
-            return info.applicationInfo.enabled && (state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                    || (state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT && info.enabled));
+            return ProviderPolicy.available(info.applicationInfo.enabled,
+                    pm.getComponentEnabledSetting(service()), info.enabled);
         } catch (PackageManager.NameNotFoundException error) { return false; }
     }
     private void failure(String message, Throwable error) { log(Log.ERROR, TAG, message, error); }
