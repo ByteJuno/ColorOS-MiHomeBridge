@@ -72,6 +72,14 @@
 
 ## 构建
 
+在 GitHub 的 **Actions → package → Run workflow** 选择 `main`，会运行测试、使用原签名构建 Release，并将 APK、源码包、SHA-256 和构建信息发布到私有仓库的 **Releases**。推送与版本对应的 `v*` 标签也会触发发包，例如 `v0.5.0-preview`。
+
+发包版本来自 `app/build.gradle.kts` 的 `versionName` / `versionCode`。同一个标签绑定同一提交；代码更新后发新版本时，先递增版本号。重跑同一提交会保留已发布的资产。
+
+签名材料使用仓库 Actions Secrets：`ANDROID_SIGNING_KEYSTORE_BASE64`、`ANDROID_SIGNING_STORE_PASSWORD`、`ANDROID_SIGNING_KEY_ALIAS`、`ANDROID_SIGNING_KEY_PASSWORD`。云端构建校验原证书并移除临时签名文件，源码包不包含密钥。
+
+`build` 工作流继续负责普通提交和 PR 的验证，并提供 `debug-apk` 下载。日常安装使用 `package` 工作流提供的原签名 Release 包。
+
 需要 JDK 21、Android SDK 37。设置 `local.properties` 的 `sdk.dir`，在 PowerShell 中执行：
 
 ```powershell
