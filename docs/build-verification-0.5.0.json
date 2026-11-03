@@ -3,10 +3,10 @@
   "version": "0.5.0-preview",
   "version_code": 10,
   "apk": "ColorOS-MiHomeBridge-0.5.0-preview.apk",
-  "bytes": 2305687,
-  "sha256": "a9e268fa2e61d19d1731b0f972fc5162a6933f4c5d19fd0b8772523ad9e6057d",
+  "bytes": 2305835,
+  "sha256": "6d2c3dcfb941db766f95c32b3e8e3fca2563507e5de69f70cba098eed7ee642a",
   "jvm": {
-    "tests": 53,
+    "tests": 54,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -40,7 +40,11 @@
     "disable_restores_originals_passed": true,
     "reenable_passed": true,
     "cold_management_launch_passed": true,
-    "tested_version": "0.4.0-preview candidate before mainline merge"
+    "tested_version": "0.5.0-preview",
+    "native_null_badge_regression_passed": true,
+    "accepted_card_count_diagnostics_passed": true,
+    "live_layout_update_passed": true,
+    "final_settings_page_passed": true
   },
   "provider_recovery": {
     "test": "terminate widgetControl only; leave native center visible",
@@ -49,13 +53,13 @@
     "recovered_phase": "connected",
     "fresh_devices": 3,
     "manual_retry_used": false,
-    "tested_version": "0.4.0-preview candidate before mainline merge"
+    "tested_version": "0.5.0-preview"
   },
   "steady_transport_observation": {
-    "heartbeat_delta": 3,
+    "heartbeat_delta": 10,
     "state_push_delta": 0,
     "icon_byte_delta": 0,
-    "tested_version": "0.4.0-preview candidate before mainline merge"
+    "tested_version": "0.5.0-preview"
   },
   "android_simulated_controls": {
     "checks": 24,
@@ -73,14 +77,16 @@
     "native_indicator_class_instantiated": true,
     "programmatic_refresh_does_not_dispatch": true,
     "stale_controls_disabled": true,
-    "last_tested_version": "0.4.0-preview candidate before mainline merge"
+    "last_tested_version": "0.5.0-preview"
   },
   "control_center": {
     "native_small_cards_loaded": true,
     "full_panel_state_loaded": true,
     "native_over_full_panel_passed": true,
     "full_panel_after_native_passed": true,
-    "tested_version": "0.4.0-preview candidate before mainline merge"
+    "tested_version": "0.5.0-preview",
+    "mihome_small_cards_shown": 2,
+    "unavailable_devices_demoted": true
   },
   "full_restore_repeated": false,
   "previous_full_restore_record": "build-verification-0.2.2.json",
@@ -101,8 +107,8 @@
     "native drag reorder, classic theme and other firmware"
   ],
   "merged_mainline_commit": "2b5bfc2087a83e412226a7e8f4383619fe9888db",
-  "device_ui_evidence_version": "0.4.0-preview candidate before mainline merge",
-  "final_build_ui_retested_after_merge": false,
+  "device_ui_evidence_version": "0.5.0-preview",
+  "final_build_ui_retested_after_merge": true,
   "final_build_installed_on_device": true,
   "screen_timeout_modified": false,
   "final_backend_build_verified": true,
@@ -111,10 +117,11 @@
   "phone_download_copy_sha256_verified": true,
   "ci": {
     "status": "success",
-    "commit": "9a86d55705af47083c9d71a697c429905b3f5a6b",
-    "url": "https://github.com/ByteJuno/ColorOS-MiHomeBridge/actions/runs/41630690435"
+    "commit": "14ed8f2fad8fd48b48855e57e7fe9f150695b89d",
+    "url": "https://github.com/ByteJuno/ColorOS-MiHomeBridge/actions/runs/41658565671",
+    "android_smoke_apk_assembled": true
   },
-  "pending": [
-    "unlock phone to visually retest merged 0.5.0 settings and native cards"
-  ]
+  "pending": [],
+  "test_package_removed": true,
+  "install_method": "push, verify SHA256, device-local pm install, verify installed SHA256"
 }
