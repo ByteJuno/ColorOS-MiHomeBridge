@@ -48,6 +48,9 @@ jobs:
       - name: Assemble debug
         run: ./gradlew :app:assembleDebug --console=plain
 
+      - name: Assemble Android smoke tests
+        run: ./gradlew :app:assembleDebugAndroidTest --console=plain
+
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v5

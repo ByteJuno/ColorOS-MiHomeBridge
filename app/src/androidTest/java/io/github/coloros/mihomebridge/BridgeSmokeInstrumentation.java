@@ -54,6 +54,7 @@ public final class BridgeSmokeInstrumentation extends Instrumentation {
             }
             else if (mode.equals("controls_preview")) preview();
             else if (mode.equals("layout")) layout(result);
+            else if (mode.equals("layout_probe")) layoutProbe(result);
             else if (mode.equals("layout_restore")) restoreLayout(result);
             else if (mode.equals("disable")) enabled(false, result);
             else if (mode.equals("enable_restore")) enabled(true, result);
@@ -236,6 +237,21 @@ public final class BridgeSmokeInstrumentation extends Instrumentation {
                 .putString(LayoutPreferences.key(user, "order"), DeviceLayoutPolicy.encodeOrder(options.order()))
                 .putBoolean(LayoutPreferences.key(user, "rooms"), options.groupRooms())
                 .putLong(BridgeContract.REVISION, prefs.getLong(BridgeContract.REVISION, 0) + 1).commit();
+    }
+    private void layoutProbe(Bundle result) throws Exception {
+        Bundle devices = command(BridgeContract.DEVICES);
+        var entries = devices.getParcelableArrayList("devices", Bundle.class); int user = devices.getInt("user", 0);
+        check(entries != null && entries.size() > 1, "saved device metadata available");
+        var prefs = BridgeApplication.framework.getRemotePreferences(BridgeContract.PREFS);
+        var before = LayoutPreferences.read(prefs, user);
+        java.util.ArrayList<String> order = new java.util.ArrayList<>(); for (Bundle entry : entries) order.add(entry.getString("id"));
+        try {
+            saveLayout(user, new DeviceLayoutPolicy.Options(java.util.Set.of(order.get(1)), order, true));
+            command(BridgeContract.SYNC); command(BridgeContract.RECONNECT); Thread.sleep(1000);
+            Bundle status = command(BridgeContract.STATUS); result.putInt("visible_while_hidden", status.getInt("native_devices"));
+            check(status.getInt("native_devices") == entries.size() - 1, "hot preference update reaches SystemUI");
+        } finally { saveLayout(user, before); command(BridgeContract.SYNC); }
+        result.putBoolean("settings_restored", true);
     }
     private void restoreLayout(Bundle result) throws Exception {
         foreground(); var recovery = getTargetContext().getSharedPreferences("smoke_recovery", 0);
