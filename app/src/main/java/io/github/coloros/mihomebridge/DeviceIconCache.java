@@ -58,7 +58,7 @@ final class DeviceIconCache {
             Drawable drawable = source.loadDrawable(context);
             if (drawable != null) {
                 int w = Math.max(1, drawable.getIntrinsicWidth()), h = Math.max(1, drawable.getIntrinsicHeight());
-                for (int edge : new int[]{256, 192, 128, 96, 64, 32}) {
+                for (int edge : DeviceCenterPolicy.iconSteps(context.getResources().getDisplayMetrics().density)) {
                     float scale = (float) edge / Math.max(w, h);
                     Bitmap bitmap = Bitmap.createBitmap(Math.max(1, Math.round(w * scale)), Math.max(1, Math.round(h * scale)), Bitmap.Config.ARGB_8888);
                     try {

@@ -34,6 +34,7 @@ final class NativeDeviceSpace {
     private static final String SDK = "com.oplus.deviceplugin.sdk.";
     private final XposedModule module;
     private final BooleanSupplier enabled;
+    private final BooleanSupplier tapToggles;
     private final BiConsumer<String, Throwable> failure;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Map<Object, Object> listeners = new WeakHashMap<>();
@@ -43,13 +44,15 @@ final class NativeDeviceSpace {
     private long lastBound;
     private final Runnable refresh = this::refreshPanels;
     private Class<?> panelInfo, panelState, deviceType, statusType, itemType, connectType, coordinationType;
+    private Class<?> batteryType, batteryInfo;
     private Constructor<?> panelConstructor, deviceConstructor;
     private Method editMode;
     private volatile boolean installed;
     private volatile int boundCards;
 
-    NativeDeviceSpace(XposedModule module, BooleanSupplier enabled, MiHomeRuntime runtime, BiConsumer<String, Throwable> failure) {
+    NativeDeviceSpace(XposedModule module, BooleanSupplier enabled, BooleanSupplier tapToggles, MiHomeRuntime runtime, BiConsumer<String, Throwable> failure) {
         this.module = module; this.enabled = enabled; this.runtime = runtime; this.failure = failure;
+        this.tapToggles = tapToggles;
         session = runtime.session;
         runtime.addListener(() -> { main.removeCallbacks(refresh); main.postDelayed(refresh, 60); });
     }
@@ -65,6 +68,10 @@ final class NativeDeviceSpace {
                 String.class, statusType, String.class, int.class, List.class, itemType, connectType, coordinationType,
                 int.class, int.class, int.class, int.class, int.class, int.class, int.class, Boolean.class);
         statusType.getConstructor(String.class, String.class, Integer.class);
+        try {
+            batteryType = type(loader, "entity.BatteryType"); batteryInfo = type(loader, "entity.BatteryInfo");
+            batteryInfo.getConstructor(batteryType, int.class, boolean.class);
+        } catch (ClassNotFoundException | NoSuchMethodException error) { batteryType = null; batteryInfo = null; }
         editMode = type(loader, "utils.PlatformUtils").getDeclaredMethod("getIsEditMode");
         // Resolve every hook before installing any. Only this firmware's explicit shapes are supported.
         Method initial = type(loader, "presenter.l").getDeclaredMethod("b");
@@ -118,7 +125,7 @@ final class NativeDeviceSpace {
                     String controlId = id.substring(DeviceSpacePolicy.PREFIX.length());
                     view.setContentDescription(HostReflect.get(chain.getArg(0), "getName") + "，"
                             + HostReflect.get(HostReflect.get(chain.getArg(0), "getDeviceStatus"), "getMainStatus"));
-                    view.setOnClickListener(v -> { if (!editing()) session.click(controlId, false); });
+                    view.setOnClickListener(v -> { if (!editing()) session.click(controlId, !tapToggles.getAsBoolean()); });
                     view.setOnLongClickListener(v -> {
                         if (editing()) return false;
                         session.click(controlId, true); return true;
@@ -179,6 +186,9 @@ final class NativeDeviceSpace {
             try { return (String) HostReflect.get(item, "getDeviceId"); }
             catch (Exception error) { throw new IllegalStateException(error); }
         });
+        combined = DeviceSpacePolicy.reachableFirst(combined, item -> {
+            try { return (Integer) HostReflect.get(item, "getDeviceState"); } catch (Exception error) { return null; }
+        });
         return panelConstructor.newInstance(combined.isEmpty() ? oldState : HostReflect.enumValue(panelState, "DEVICE_LIST"), combined);
     }
 
@@ -188,12 +198,19 @@ final class NativeDeviceSpace {
         boolean on = ready && MiHomeSession.isOn(control);
         String text = statusText(entry);
         Object status = statusType.getConstructor(String.class, String.class, Integer.class)
-                .newInstance(text, entry.subtitle().isBlank() ? "米家" : "米家 · " + entry.subtitle(), null);
+                .newInstance(text, entry.subtitle().isBlank() ? "米家" : "米家 · " + entry.subtitle(),
+                        DeviceSpacePolicy.eventType(entry.pending(), entry.message(), control != null, ready));
         return deviceConstructor.newInstance(DeviceSpacePolicy.PREFIX + entry.id(),
-                HostReflect.enumValue(deviceType, nativeType(entry.type())), null, List.of(), Map.of(),
+                HostReflect.enumValue(deviceType, nativeType(entry.type())), null, battery(control == null ? "" : control.getStatusText().toString()), Map.of(),
                 entry.title(), status, "", ready ? (on ? 1 : 2) : 3, List.of(),
                 HostReflect.enumValue(itemType, "SINGLE"), HostReflect.enumValue(connectType, ready ? "ON_LINE" : "OFF_LINE"),
                 HostReflect.enumValue(coordinationType, "DEFAULT"), 0, 0, 0, 0, 0, 0, 0, false);
+    }
+
+    private List<Object> battery(String text) {
+        int percent = DeviceSpacePolicy.batteryPercent(text); if (percent < 0 || batteryInfo == null) return List.of();
+        try { return List.of(batteryInfo.getConstructor(batteryType, int.class, boolean.class).newInstance(HostReflect.enumValue(batteryType, "SINGLE"), percent, false)); }
+        catch (Exception error) { return List.of(); }
     }
 
     static String statusText(MiHomeSession.Entry entry) {

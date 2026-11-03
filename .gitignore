@@ -14,5 +14,7 @@ dist/
 signing.properties
 .env
 .env.*
+# Decompiled host bytecode: regenerate with scripts/dump_host_dex.ps1, never publish.
+docs/host-dex/
 __pycache__/
 *.pyc

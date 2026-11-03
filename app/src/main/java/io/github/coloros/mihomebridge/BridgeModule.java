@@ -43,7 +43,7 @@ public final class BridgeModule extends XposedModule {
     private final ThreadLocal<Boolean> providerRequest = ThreadLocal.withInitial(() -> false);
 
     @Override public void onPackageLoaded(PackageLoadedParam param) {
-        if (!param.isFirstPackage() || Build.VERSION.SDK_INT != 37) return;
+        if (!param.isFirstPackage() || Build.VERSION.SDK_INT < BridgeContract.MIN_SDK) return;
         String pkg = param.getPackageName();
         if (!pkg.equals(BridgeContract.MIHOME) && !pkg.equals(BridgeContract.SYSTEMUI) && !pkg.equals(BridgeContract.MYDEVICES)) return;
         try {
@@ -52,7 +52,7 @@ public final class BridgeModule extends XposedModule {
             if (pkg.equals(BridgeContract.MYDEVICES)) {
                 boolean ready;
                 String issue;
-                try { new NativeDeviceCenter(this, this::enabled, this::failure).install(loader); ready = true; issue = ""; }
+                try { new NativeDeviceCenter(this, this::enabled, this::placement, this::tapBehavior, this::failure).install(loader); ready = true; issue = ""; }
                 catch (Throwable error) { failure("Device center adapter is incompatible", error); ready = false; issue = error.getClass().getSimpleName() + ": " + error.getMessage(); }
                 final boolean compatible = ready; final String detail = issue;
                 hook(Application.class.getDeclaredMethod("onCreate")).intercept(chain -> {
@@ -65,13 +65,15 @@ public final class BridgeModule extends XposedModule {
                 });
                 return;
             }
-            if (pkg.equals(BridgeContract.MIHOME)) installMiHome(loader);
+            if (pkg.equals(BridgeContract.MIHOME)) {
+                try { installMiHome(loader); } catch (Throwable error) { failure("MiHome provider hook skipped", error); }
+            }
             else {
-                captureControls(loader);
+                try { captureControls(loader); } catch (Throwable error) { failure("Controls component not available", error); }
                 runtime = new MiHomeRuntime(this, this::enabled, () -> controlsComponent.get(), () -> preferences, this::failure);
                 try { runtime.install(loader); }
                 catch (Throwable error) { failure("MiHome backend is not compatible", error); }
-                nativeSpace = new NativeDeviceSpace(this, this::enabled, runtime, this::failure);
+                nativeSpace = new NativeDeviceSpace(this, this::enabled, () -> !BridgeContract.TAP_DETAILS.equals(tapBehavior()), runtime, this::failure);
                 try { nativeSpace.install(loader); }
                 catch (Throwable error) { failure("Native Device Space is not compatible", error); }
             }
@@ -91,6 +93,14 @@ public final class BridgeModule extends XposedModule {
         }
     }
 
+    private boolean placement() {
+        try { return preferences != null && BridgeContract.PREPEND.equals(preferences.getString(BridgeContract.PLACEMENT, BridgeContract.APPEND)); }
+        catch (RuntimeException error) { return false; }
+    }
+    private String tapBehavior() {
+        try { return preferences == null ? BridgeContract.TAP_QUICK : preferences.getString(BridgeContract.TAP, BridgeContract.TAP_QUICK); }
+        catch (RuntimeException error) { return BridgeContract.TAP_QUICK; }
+    }
     private boolean enabled() {
         try {
             if (preferences == null) return false;
@@ -385,9 +395,7 @@ public final class BridgeModule extends XposedModule {
         try {
             var pm = context.getPackageManager();
             var info = pm.getServiceInfo(service(), PackageManager.ComponentInfoFlags.of(0));
-            int state = pm.getComponentEnabledSetting(service());
-            return info.applicationInfo.enabled && (state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                    || (state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT && info.enabled));
+            return ProviderPolicy.available(info.applicationInfo.enabled, pm.getComponentEnabledSetting(service()), info.enabled);
         } catch (PackageManager.NameNotFoundException error) { return false; }
     }
     private void failure(String message, Throwable error) { log(Log.ERROR, TAG, message, error); }

@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.coloros.mihomebridge"
         minSdk = 37
         targetSdk = 37
-        versionCode = 8
-        versionName = "0.4.0-preview"
+        versionCode = 10
+        versionName = "0.5.0-preview"
         testInstrumentationRunner = "io.github.coloros.mihomebridge.BridgeSmokeInstrumentation"
     }
     signingConfigs {

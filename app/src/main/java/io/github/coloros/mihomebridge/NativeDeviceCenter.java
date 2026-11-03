@@ -18,6 +18,7 @@ import android.os.Looper;
 import android.os.ResultReceiver;
 import android.os.SystemClock;
 import android.view.GestureDetector;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewParent;
@@ -44,6 +45,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /** Native MyDevices list, room headers and power controls with an authenticated push subscription. */
 final class NativeDeviceCenter {
@@ -52,6 +54,8 @@ final class NativeDeviceCenter {
     private static final String ICON = "coloros-mihome-icon:", ROOM_HEADER = "米家 · ";
     private final XposedModule module;
     private final BooleanSupplier enabled;
+    private final BooleanSupplier prepend;
+    private final Supplier<String> tapBehavior;
     private final BiConsumer<String, Throwable> failure;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Map<Activity, Page> pages = new WeakHashMap<>();
@@ -89,8 +93,9 @@ final class NativeDeviceCenter {
         CenterControlDialog controls;
         Page(Activity activity) { this.activity = new WeakReference<>(activity); }
     }
-    NativeDeviceCenter(XposedModule module, BooleanSupplier enabled, BiConsumer<String, Throwable> failure) {
+    NativeDeviceCenter(XposedModule module, BooleanSupplier enabled, BooleanSupplier prepend, Supplier<String> tapBehavior, BiConsumer<String, Throwable> failure) {
         this.module = module; this.enabled = enabled; this.failure = failure; imageWorker.allowCoreThreadTimeOut(true);
+        this.prepend = prepend; this.tapBehavior = tapBehavior;
     }
     void install(ClassLoader loader) throws Exception {
         Class<?> home = Class.forName(HOME, false, loader);
@@ -141,7 +146,7 @@ final class NativeDeviceCenter {
                 for (Object item : (List<?>) chain.getArg(0)) if (!id(item).startsWith(DeviceSpacePolicy.PREFIX)) originals.add(item);
                 page.original = originals; page.empty = (Boolean) chain.getArg(1) && originals.isEmpty(); page.noNetwork = (Boolean) chain.getArg(2);
                 List<Object> additions = new ArrayList<>(); for (CenterDevice row : page.rows) additions.add(card(row, page.busy.contains(row.id())));
-                merged = DeviceCenterPolicy.merge(originals, additions, NativeDeviceCenter::id);
+                merged = DeviceCenterPolicy.merge(originals, additions, NativeDeviceCenter::id, prepend.getAsBoolean());
             } catch (Exception error) { failure.accept("Device center merge failed", error); return chain.proceed(); }
             return chain.proceed(new Object[]{merged, page.rows.isEmpty() ? page.empty : false, page.noNetwork});
         });
@@ -225,6 +230,7 @@ final class NativeDeviceCenter {
             }
             output.add(item);
         }
+        List<Object> nativeRows = output; output = new ArrayList<>();
         String previous = null;
         for (CenterDevice row : rows.values()) {
             Object data = own.get(row.id()); if (data == null) continue;
@@ -232,7 +238,8 @@ final class NativeDeviceCenter {
             if (!room.equals(previous)) { output.add(headerConstructor.newInstance(smartSection, ROOM_HEADER + room)); previous = room; }
             output.add(cardItemConstructor.newInstance(data, smartSection));
         }
-        return output;
+        if (prepend.getAsBoolean()) { output.addAll(nativeRows); return output; }
+        nativeRows.addAll(output); return nativeRows;
     }
     private void bindPower(View root, CenterDevice row) throws Exception {
         View button = (View) nativeButton.get(root), light = (View) nativeLight.get(root);
@@ -260,10 +267,14 @@ final class NativeDeviceCenter {
         return new GestureDetector(view.getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDown(MotionEvent event) { return true; }
             @Override public boolean onSingleTapUp(MotionEvent event) { View v = target.get(); return v != null && v.performClick(); }
-            @Override public void onLongPress(MotionEvent event) { View v = target.get(); if (v != null) { v.setPressed(false); v.performLongClick(); } }
+            @Override public void onLongPress(MotionEvent event) { View v = target.get(); if (v != null) { v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS); v.setPressed(false); v.performLongClick(); } }
         });
     }
-    private Page page(Activity activity) { return pages.computeIfAbsent(activity, Page::new); }
+    private Page page(Activity activity) {
+        return pages.computeIfAbsent(activity, owner -> {
+            Page page = new Page(owner); page.rows = rows.values().stream().map(CenterDevice::staleCopy).toList(); page.groupRooms = groupRooms; return page;
+        });
+    }
     private Page pageFor(View view) {
         Context current = view.getContext();
         for (int i = 0; i < 8; i++) {
@@ -353,7 +364,7 @@ final class NativeDeviceCenter {
                 Bundle capabilities = item.getBundle("capabilities"); if (capabilities == null) capabilities = new Bundle();
                 CenterDevice row = new CenterDevice(id, item.getString("title", "米家设备"), item.getString("room", ""), item.getString("status", "正在连接…"),
                         item.getBoolean("online"), item.getBoolean("stale"), item.getBoolean("pending"), capabilities,
-                        wanted, image == null ? "" : image.hash, image == null ? null : image.image);
+                        wanted, image == null ? "" : image.hash, image == null ? null : image.image, item.getInt("event_type"));
                 CenterDevice previous = find(page, id);
                 if (row.pending() || previous != null && !ControlCapabilities.fingerprint(previous.capabilities()).equals(ControlCapabilities.fingerprint(capabilities))) page.busy.remove(id);
                 next.add(row);
@@ -404,7 +415,9 @@ final class NativeDeviceCenter {
         rows = Map.of();
     }
     private void index(Page page) {
-        Map<String, CenterDevice> index = new LinkedHashMap<>(); for (CenterDevice row : page.rows) index.put(row.id(), row); rows = index;
+        Map<String, CenterDevice> index = new LinkedHashMap<>(); for (CenterDevice row : page.rows) index.put(row.id(), row);
+        for (Page other : new ArrayList<>(pages.values())) if (other != page) for (CenterDevice row : other.rows) index.putIfAbsent(row.id(), row);
+        rows = index;
     }
     private void replace(Page page, List<CenterDevice> next, boolean force) {
         boolean same = next.size() == page.rows.size();
@@ -423,7 +436,8 @@ final class NativeDeviceCenter {
         catch (Exception error) { failure.accept("Device center refresh failed", error); }
     }
     private Object card(CenterDevice row, boolean busy) throws Exception {
-        Object status = statusConstructor.newInstance(row.displayStatus(busy), row.room().isBlank() ? "米家" : "米家 · " + row.room(), null, null);
+        Integer event = row.pending() || busy ? null : row.stale() ? DeviceSpacePolicy.EVENT_WARNING : row.eventType() == 0 ? null : row.eventType();
+        Object status = statusConstructor.newInstance(row.displayStatus(busy), row.room().isBlank() ? "米家" : "米家 · " + row.room(), event, null);
         String key = Base64.getUrlEncoder().withoutPadding().encodeToString(row.id().getBytes(StandardCharsets.UTF_8));
         String image = ICON + key + ":" + row.iconHash() + ":" + Integer.toHexString((row.contentKey() + busy).hashCode());
         Object data = dataConstructor.newInstance(DeviceSpacePolicy.PREFIX + row.id(), row.title(), image, "", row.online() && !row.stale() ? "ON_LINE" : "OFF_LINE",
@@ -436,6 +450,9 @@ final class NativeDeviceCenter {
     private CenterDevice find(Page page, String id) { if (page != null) for (CenterDevice row : page.rows) if (row.id().equals(id)) return row; return null; }
     private void showControls(Page page, String id) {
         if (!valid(page)) return; CenterDevice row = find(page, id); if (row == null) return;
+        String behavior = tapBehavior.get();
+        if (BridgeContract.TAP_DETAILS.equals(behavior)) { details(page, id); return; }
+        if (BridgeContract.TAP_TOGGLE.equals(behavior) && row.toggle() && row.ready()) { action(page, id, "toggle", !row.checked(), 0); return; }
         if (!row.controllable() && !row.stale()) { details(page, id); return; }
         Activity activity = page.activity.get(); if (activity == null) return;
         if (page.controls != null) page.controls.dismiss();

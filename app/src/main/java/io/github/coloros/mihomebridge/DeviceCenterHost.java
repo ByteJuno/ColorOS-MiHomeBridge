@@ -190,6 +190,8 @@ final class DeviceCenterHost extends BroadcastReceiver {
             Control control = entry.control();
             row.putBoolean("stale", entry.stale()); row.putBoolean("pending", entry.pending());
             row.putBoolean("online", control != null && control.getStatus() == Control.STATUS_OK);
+            Integer event = DeviceSpacePolicy.eventType(entry.pending(), entry.message(), control != null, !entry.stale() && control != null && control.getStatus() == Control.STATUS_OK);
+            row.putInt("event_type", event == null ? 0 : event);
             if (control != null) try { row.putBundle("capabilities", new ControlCapabilities(control).bundle(entry.type())); }
             catch (RuntimeException error) { failure.accept("Unsupported control template", error); }
             Icon source = control == null ? null : control.getCustomIcon();
