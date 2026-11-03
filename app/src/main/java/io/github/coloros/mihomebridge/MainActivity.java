@@ -26,9 +26,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private TextView frameworkState, providerState, systemState, nativeState, message;
+    private TextView frameworkState, providerState, systemState, nativeState, centerState, connectionState, message;
     private Switch enabledSwitch;
     private boolean bindingSwitch;
+    private boolean openingManagement;
+    private boolean resumed;
+    private long managementDeadline;
+    private final Runnable managementLaunch = this::openPendingManagement;
     private interface Reply { void accept(boolean success, Bundle result); }
 
     @Override public void onCreate(Bundle savedInstanceState) {
@@ -54,6 +58,8 @@ public final class MainActivity extends Activity {
         providerState = text(status, "米家 · 正在检查", 14, false, true);
         systemState = text(status, "控制中心 · 正在检查", 14, false, true);
         nativeState = text(status, "设备空间 · 正在检查", 14, false, true);
+        centerState = text(status, "设备中心 · 正在检查", 14, false, true);
+        connectionState = text(status, "米家连接 · 正在检查", 14, false, true);
         enabledSwitch = new Switch(this);
         enabledSwitch.setText("启用米家桥接");
         enabledSwitch.setTextSize(16);
@@ -72,6 +78,7 @@ public final class MainActivity extends Activity {
         button(setup, "启用设备空间主列表", this::requestCenterScope);
         button(setup, "打开设备空间", () -> request(BridgeContract.SYSTEMUI, BridgeContract.CENTER_OPEN,
                 (ok, result) -> { if (!ok) showResult(result); }));
+        button(setup, "管理设备卡片 / 房间分组", this::manageDevices);
         button(setup, "添加完整面板快捷入口（可选）", () -> {
             if (!saveEnabled(true)) return;
             if (providerEnabled()) {
@@ -85,11 +92,16 @@ public final class MainActivity extends Activity {
         });
         button(setup, "选择设备 / 打开完整面板", () -> request(BridgeContract.SYSTEMUI, BridgeContract.OPEN,
                 (ok, result) -> { if (!ok) showResult(result); }));
-        text(setup, "控制中心小卡片：点击开关，长按详情。设备空间大卡片：点击进入对应的米家详情。调光、调温等操作也可在完整面板中使用。", 14, false, true);
+        text(setup, "控制中心小卡片：点击开关，长按详情。设备空间大卡片：右上角开关直接操作，点击卡片快捷调光、调温或执行场景，长按进入米家详情。可用操作以设备提供的能力为准。", 14, false, true);
 
         LinearLayout recovery = card(body);
         text(recovery, "管理与恢复", 19, true, false);
         button(recovery, "重新检查", this::refresh);
+        button(recovery, "重新连接设备服务", () -> request(BridgeContract.SYSTEMUI, BridgeContract.RECONNECT, (ok, data) -> {
+            showMessage(ok ? "正在连接米家设备服务" : data.getString("message"));
+            handler.postDelayed(this::refresh, 1500); handler.postDelayed(this::refresh, 6000);
+        }));
+        button(recovery, "查看连接详情", this::showDiagnostics);
         button(recovery, "关闭并恢复本模块的改动", () -> new AlertDialog.Builder(this)
                 .setTitle("关闭米家桥接？")
                 .setMessage("恢复米家设备控制服务的原状态，并移除由本模块添加的入口。其他快捷开关会保留。系统可能清除已选的米家设备，重新启用后需要重新选择。")
@@ -102,7 +114,24 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        resumed = true;
         handler.postDelayed(this::refresh, 500);
+        managementDeadline = SystemClock.elapsedRealtime() + 5000;
+        handler.post(managementLaunch);
+    }
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent); setIntent(intent);
+        if (resumed) { managementDeadline = SystemClock.elapsedRealtime() + 5000; handler.removeCallbacks(managementLaunch); handler.post(managementLaunch); }
+    }
+    @Override protected void onPause() { resumed = false; handler.removeCallbacks(managementLaunch); super.onPause(); }
+    private void openPendingManagement() {
+        if (!resumed || isDestroyed() || !getIntent().getBooleanExtra("manage_devices", false)) return;
+        if (BridgeApplication.framework == null) {
+            if (SystemClock.elapsedRealtime() < managementDeadline) handler.postDelayed(managementLaunch, 100);
+            else showMessage("LSPosed 尚未连接，请连接后点击管理设备卡片");
+            return;
+        }
+        getIntent().removeExtra("manage_devices"); manageDevices();
     }
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
@@ -140,19 +169,78 @@ public final class MainActivity extends Activity {
         } catch (PackageManager.NameNotFoundException e) { providerState.setText("米家 · 未安装或没有设备控制服务"); }
         request(BridgeContract.SYSTEMUI, BridgeContract.STATUS, (ok, data) -> {
             if (!ok) systemState.setText("控制中心 · 模块尚未加载，请启用后重启");
+            else if (!BuildConfig.VERSION_NAME.equals(data.getString("build"))) systemState.setText("系统界面 · 仍在运行旧版模块，请重启手机");
+            else if (!data.getBoolean("core_ready")) systemState.setText("系统界面 · 设备服务接口不匹配");
             else if (!data.getBoolean("controls")) systemState.setText("控制中心 · 当前系统接口不匹配");
-            else systemState.setText("控制中心 · " + (data.getBoolean("tile") ? "入口已添加" : "已连接，可添加入口"));
-            nativeState.setText(!ok ? "设备空间 · 等待系统界面连接"
-                    : !data.getBoolean("native_space") ? "设备空间 · 当前接口不匹配"
-                    : !enabledSwitch.isChecked() ? "设备空间 · 已关闭"
-                    : data.getInt("native_bound_cards") > 0 ? "设备空间 · 原生卡片已加载，已选 " + data.getInt("native_devices") + " 台设备"
-                    : "设备空间 · 适配已加载，请展开控制中心");
+            else systemState.setText("系统界面 · 已连接");
+            nativeState.setText(!ok ? "控制中心小卡片 · 等待连接" : !data.getBoolean("native_space") ? "控制中心小卡片 · 当前接口不匹配"
+                    : !enabledSwitch.isChecked() ? "控制中心小卡片 · 已关闭" : data.getBoolean("native_panel_active") ? "控制中心小卡片 · 已展开" : "控制中心小卡片 · 适配就绪");
+            centerState.setText(!ok ? "设备中心 · 等待连接" : !data.getBoolean("center_reported") ? "设备中心 · 尚未打开"
+                    : !data.getBoolean("center_compatible") ? "设备中心 · 当前版本不兼容"
+                    : !BuildConfig.VERSION_NAME.equals(data.getString("center_build")) ? "设备中心 · 仍在运行旧版模块，请重启手机"
+                    : data.getInt("center_clients") > 0 ? "设备中心 · 已连接，显示 " + data.getInt("center_rendered") + " 台米家设备" : "设备中心 · 适配就绪");
+            connectionState.setText(!ok ? "米家连接 · 等待连接" : connectionText(data));
+        });
+    }
+    private String connectionText(Bundle data) {
+        if (!enabledSwitch.isChecked()) return "米家连接 · 已关闭";
+        String phase = data.getString("connection", "idle");
+        return "米家连接 · " + switch (phase) {
+            case "connected" -> "状态正常 · " + age(data.getLong("last_update"));
+            case "connecting" -> "正在连接";
+            case "retrying" -> "正在重连（第 " + data.getInt("retry_count") + " 次）";
+            case "failed" -> "连接中断，请重新连接设备服务";
+            case "empty" -> data.getInt("selected_devices") == 0 ? "尚未选择米家设备" : "已隐藏全部设备卡片";
+            case "paused" -> "按需连接 · " + age(data.getLong("last_update"));
+            default -> "等待打开设备列表";
+        };
+    }
+    private String age(long time) { return time <= 0 ? "暂未收到状态" : "上次更新 " + Math.max(0, (SystemClock.elapsedRealtime() - time) / 1000) + " 秒前"; }
+    private void manageDevices() {
+        if (isDestroyed() || openingManagement) return;
+        if (BridgeApplication.framework == null) { showMessage("请先在 LSPosed 启用模块，再重新打开设置"); return; }
+        openingManagement = true;
+        request(BridgeContract.SYSTEMUI, BridgeContract.DEVICES, (ok, data) -> {
+            openingManagement = false;
+            if (!ok) { showResult(data); return; }
+            int user = data.getInt("user", -1);
+            var devices = data.getParcelableArrayList("devices", Bundle.class);
+            if (user < 0 || devices == null || devices.isEmpty()) { showMessage("尚未选择米家设备，请先在完整面板添加设备"); return; }
+            try {
+                var service = BridgeApplication.framework;
+                if (service == null) throw new IllegalStateException("LSPosed 连接已断开，请重试");
+                var prefs = service.getRemotePreferences(BridgeContract.PREFS);
+                new DeviceManagerDialog(this, devices, LayoutPreferences.read(prefs, user), options -> {
+                    try {
+                        long revision = Math.addExact(prefs.getLong(BridgeContract.REVISION, 0), 1);
+                        if (!prefs.edit().putStringSet(LayoutPreferences.key(user, "hidden"), options.hidden())
+                                .putString(LayoutPreferences.key(user, "order"), DeviceLayoutPolicy.encodeOrder(options.order()))
+                                .putBoolean(LayoutPreferences.key(user, "rooms"), options.groupRooms()).putLong(BridgeContract.REVISION, revision).commit())
+                            throw new IllegalStateException("保存失败，请重试");
+                        request(BridgeContract.SYSTEMUI, BridgeContract.SYNC, (saved, result) -> { showMessage(saved ? "卡片显示设置已保存" : result.getString("message")); refresh(); });
+                    } catch (RuntimeException error) { showMessage(error.getMessage()); }
+                });
+            } catch (RuntimeException error) { showMessage(error.getMessage()); }
+        });
+    }
+    private void showDiagnostics() {
+        request(BridgeContract.SYSTEMUI, BridgeContract.STATUS, (ok, data) -> {
+            if (!ok) { showResult(data); return; }
+            String text = "模块版本：" + BuildConfig.VERSION_NAME + "\n系统界面加载：" + data.getString("build", "未知")
+                    + "\n设备中心加载：" + data.getString("center_build", "尚未启动") + "\n" + connectionText(data)
+                    + "\n已选设备：" + data.getInt("selected_devices") + "，当前收到状态：" + data.getInt("fresh_devices")
+                    + "\n状态推送：" + data.getLong("center_pushes") + " 次，心跳：" + data.getLong("center_heartbeats") + " 次"
+                    + "\n图片编码：" + data.getLong("icon_encodes") + " 次，传输：" + data.getLong("icon_bytes_sent") / 1024 + " KiB";
+            if (!data.getString("connection_error", "").isBlank()) text += "\n连接提示：" + data.getString("connection_error");
+            if (!data.getString("center_error", "").isBlank()) text += "\n设备中心适配：" + data.getString("center_error");
+            new AlertDialog.Builder(this).setTitle("连接详情").setMessage(text).setPositiveButton("关闭", null).show();
         });
     }
     private void requestCenterScope() {
         try {
             var service = BridgeApplication.framework;
             if (service == null) throw new IllegalStateException("请先在 LSPosed 启用本模块。");
+            if (service.getScope().contains(BridgeContract.MYDEVICES)) { showMessage("设备空间作用域已配置，更新模块后重启手机即可加载新版"); return; }
             service.requestScope(List.of(BridgeContract.MYDEVICES), new io.github.libxposed.service.XposedService.OnScopeEventListener() {
                 @Override public void onScopeRequestApproved(List<String> scope) {
                     handler.post(() -> { if (!isDestroyed()) { showMessage("设备空间作用域已启用，重启设备空间后生效。"); refresh(); } });

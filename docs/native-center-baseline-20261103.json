@@ -1,0 +1,594 @@
+{
+  "schema": 1,
+  "date": "2026-11-03",
+  "firmware": "PLK110_17.0.0.105(CN01)",
+  "mihome_version": "11.9.625",
+  "systemui_version": "17.99.02",
+  "artifacts": [
+    {
+      "file": "MiHome-11.9.625.apk",
+      "bytes": 241424284,
+      "sha256": "ce6156b54c7395fc1749ab28ba1d9c8d0a04472f1a54180f40278bdce07d5472",
+      "checks": [
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/ControlUtils;",
+          "expected": "initService\\(Landroid/content/Context;Z\\)V",
+          "matched": [
+            "initService(Landroid/content/Context;Z)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/ControlUtils;",
+          "expected": "readAllDeviceList\\(Landroid/content/Context;Ljava/lang/String;L[^;]+;\\)V",
+          "matched": [
+            "readAllDeviceList(Landroid/content/Context;Ljava/lang/String;L_m_j/p56;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/ControlUtils;",
+          "expected": "readSuggestDeviceList\\(Landroid/content/Context;Ljava/lang/String;IIL[^;]+;\\)V",
+          "matched": [
+            "readSuggestDeviceList(Landroid/content/Context;Ljava/lang/String;IIL_m_j/p56;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/MiControlsProviderService;",
+          "expected": "createPublisherForAllAvailable\\(\\)Ljava/util/concurrent/Flow\\$Publisher;",
+          "matched": [
+            "createPublisherForAllAvailable()Ljava/util/concurrent/Flow$Publisher;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/xiaomi/smarthome/controls/MiControlsProviderService$2;",
+          "expected": "onReadyRequest\\(J\\)V",
+          "matched": [
+            "onReadyRequest(J)V"
+          ],
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "file": "SystemUI.apk",
+      "bytes": 98816692,
+      "sha256": "a06bf8e0046a5e6a19347e09064e6ce8f79e0e963c78c8ce65f0fbf56d770e62",
+      "checks": [
+        {
+          "class": "Lcom/android/systemui/controls/dagger/ControlsComponent;",
+          "expected": "<init>\\(Z.+\\)V",
+          "matched": [
+            "<init>(ZLdagger/Lazy;Ldagger/Lazy;Ldagger/Lazy;Lcom/android/internal/widget/LockPatternUtils;Lcom/android/systemui/statusbar/policy/KeyguardStateController;Lcom/android/systemui/settings/UserTracker;Lcom/android/systemui/controls/settings/ControlsSettingsRepository;Ljava/util/Optional;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/dagger/ControlsComponent;",
+          "expected": "getControlsController\\(\\)Ljava/util/Optional;",
+          "matched": [
+            "getControlsController()Ljava/util/Optional;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/dagger/ControlsComponent;",
+          "expected": "getControlsUiController\\(\\)Ljava/util/Optional;",
+          "matched": [
+            "getControlsUiController()Ljava/util/Optional;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/ui/ControlsUiControllerImpl;",
+          "expected": "resolveActivity\\(\\)Ljava/lang/Class;",
+          "matched": [
+            "resolveActivity()Ljava/lang/Class;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/systemui/qs/tiles/OplusDeviceControlsTile;",
+          "expected": "isAvailable\\(\\)Z",
+          "matched": [
+            "isAvailable()Z"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/systemui/qs/tileimpl/OplusQSFactoryImpl;",
+          "expected": "createTile\\(Ljava/lang/String;\\).+",
+          "matched": [
+            "createTile(Ljava/lang/String;)Lcom/android/systemui/plugins/qs/QSTile;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/qs/pipeline/domain/interactor/CurrentTilesInteractorImpl;",
+          "expected": "addTile\\(Lcom/android/systemui/qs/pipeline/shared/TileSpec;I\\)V",
+          "matched": [
+            "addTile(Lcom/android/systemui/qs/pipeline/shared/TileSpec;I)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/qs/pipeline/domain/interactor/CurrentTilesInteractorImpl;",
+          "expected": "removeTiles\\(Ljava/util/Collection;\\)V",
+          "matched": [
+            "removeTiles(Ljava/util/Collection;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/qs/pipeline/domain/interactor/CurrentTilesInteractorImpl;",
+          "expected": "getCurrentTilesSpecs\\(\\)Ljava/util/List;",
+          "matched": [
+            "getCurrentTilesSpecs()Ljava/util/List;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/qs/pipeline/shared/TileSpec$Companion;",
+          "expected": "create\\(Ljava/lang/String;\\)Lcom/android/systemui/qs/pipeline/shared/TileSpec;",
+          "matched": [
+            "create(Ljava/lang/String;)Lcom/android/systemui/qs/pipeline/shared/TileSpec;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsBindingControllerImpl;",
+          "expected": "<init>\\(Landroid/content/Context;Lcom/android/systemui/util/concurrency/DelayableExecutor;Ldagger/Lazy;Lcom/android/systemui/controls/controller/PackageUpdateMonitor\\$Factory;Lcom/android/systemui/settings/UserTracker;\\)V",
+          "matched": [
+            "<init>(Landroid/content/Context;Lcom/android/systemui/util/concurrency/DelayableExecutor;Ldagger/Lazy;Lcom/android/systemui/controls/controller/PackageUpdateMonitor$Factory;Lcom/android/systemui/settings/UserTracker;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsBindingControllerImpl;",
+          "expected": "subscribe\\(Lcom/android/systemui/controls/controller/StructureInfo;\\)V",
+          "matched": [
+            "subscribe(Lcom/android/systemui/controls/controller/StructureInfo;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsBindingControllerImpl;",
+          "expected": "action\\(Landroid/content/ComponentName;Lcom/android/systemui/controls/controller/ControlInfo;Landroid/service/controls/actions/ControlAction;\\)V",
+          "matched": [
+            "action(Landroid/content/ComponentName;Lcom/android/systemui/controls/controller/ControlInfo;Landroid/service/controls/actions/ControlAction;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsBindingControllerImpl;",
+          "expected": "unbind\\(\\)V",
+          "matched": [
+            "unbind()V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsProviderLifecycleManager;",
+          "expected": "<init>\\(Landroid/content/Context;Lcom/android/systemui/util/concurrency/DelayableExecutor;Landroid/service/controls/IControlsActionCallback\\$Stub;Landroid/os/UserHandle;Landroid/content/ComponentName;Lcom/android/systemui/controls/controller/PackageUpdateMonitor\\$Factory;\\)V",
+          "matched": [
+            "<init>(Landroid/content/Context;Lcom/android/systemui/util/concurrency/DelayableExecutor;Landroid/service/controls/IControlsActionCallback$Stub;Landroid/os/UserHandle;Landroid/content/ComponentName;Lcom/android/systemui/controls/controller/PackageUpdateMonitor$Factory;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsProviderLifecycleManager;",
+          "expected": "getToken\\(\\)Landroid/os/IBinder;",
+          "matched": [
+            "getToken()Landroid/os/IBinder;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsControllerImpl;",
+          "expected": "changeUser\\(Landroid/os/UserHandle;\\)V",
+          "matched": [
+            "changeUser(Landroid/os/UserHandle;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsControllerImpl;",
+          "expected": "getFavoritesForComponent\\(Landroid/content/ComponentName;\\)Ljava/util/List;",
+          "matched": [
+            "getFavoritesForComponent(Landroid/content/ComponentName;)Ljava/util/List;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsControllerImpl;",
+          "expected": "getCurrentUserId\\(\\)I",
+          "matched": [
+            "getCurrentUserId()I"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/StatefulControlSubscriber;",
+          "expected": "onError\\(Landroid/os/IBinder;Ljava/lang/String;\\)V",
+          "matched": [
+            "onError(Landroid/os/IBinder;Ljava/lang/String;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/StatefulControlSubscriber;",
+          "expected": "onComplete\\(Landroid/os/IBinder;\\)V",
+          "matched": [
+            "onComplete(Landroid/os/IBinder;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/ControlsProviderLifecycleManager$serviceConnection$1;",
+          "expected": "onServiceDisconnected\\(Landroid/content/ComponentName;\\)V",
+          "matched": [
+            "onServiceDisconnected(Landroid/content/ComponentName;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/android/systemui/controls/controller/StructureInfo;",
+          "expected": "<init>\\(Landroid/content/ComponentName;Ljava/lang/CharSequence;Ljava/util/List;\\)V",
+          "matched": [
+            "<init>(Landroid/content/ComponentName;Ljava/lang/CharSequence;Ljava/util/List;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/entity/PanelInfo;",
+          "expected": "<init>\\(Lcom/oplus/deviceplugin/sdk/entity/PanelState;Ljava/util/List;\\)V",
+          "matched": [
+            "<init>(Lcom/oplus/deviceplugin/sdk/entity/PanelState;Ljava/util/List;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/entity/PanelInfo;",
+          "expected": "getPanelDevices\\(\\)Ljava/util/List;",
+          "matched": [
+            "getPanelDevices()Ljava/util/List;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;",
+          "expected": "<init>\\(Ljava/lang/String;Lcom/oplus/deviceplugin/sdk/entity/DeviceType;Ljava/lang/Integer;Ljava/util/List;Ljava/util/Map;Ljava/lang/String;Lcom/oplus/deviceplugin/sdk/entity/DeviceStatus;Ljava/lang/String;ILjava/util/List;Lcom/oplus/deviceplugin/sdk/entity/DeviceItemType;Lcom/oplus/deviceplugin/sdk/entity/ConnectState;Lcom/oplus/deviceplugin/sdk/entity/SynergyCoordinationState;IIIIIIILjava/lang/Boolean;\\)V",
+          "matched": [
+            "<init>(Ljava/lang/String;Lcom/oplus/deviceplugin/sdk/entity/DeviceType;Ljava/lang/Integer;Ljava/util/List;Ljava/util/Map;Ljava/lang/String;Lcom/oplus/deviceplugin/sdk/entity/DeviceStatus;Ljava/lang/String;ILjava/util/List;Lcom/oplus/deviceplugin/sdk/entity/DeviceItemType;Lcom/oplus/deviceplugin/sdk/entity/ConnectState;Lcom/oplus/deviceplugin/sdk/entity/SynergyCoordinationState;IIIIIIILjava/lang/Boolean;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/entity/DeviceStatus;",
+          "expected": "<init>\\(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;\\)V",
+          "matched": [
+            "<init>(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/presenter/l;",
+          "expected": "b\\(\\)Lcom/oplus/deviceplugin/sdk/entity/PanelInfo;",
+          "matched": [
+            "b()Lcom/oplus/deviceplugin/sdk/entity/PanelInfo;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/d;",
+          "expected": "a\\(Lcom/oplus/deviceplugin/sdk/entity/PanelInfo;\\)V",
+          "matched": [
+            "a(Lcom/oplus/deviceplugin/sdk/entity/PanelInfo;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/j;",
+          "expected": "a\\(Lcom/oplus/deviceplugin/sdk/entity/PanelInfo;\\)V",
+          "matched": [
+            "a(Lcom/oplus/deviceplugin/sdk/entity/PanelInfo;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/h;",
+          "expected": "onResume\\(\\)V",
+          "matched": [
+            "onResume()V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/h;",
+          "expected": "onPause\\(\\)V",
+          "matched": [
+            "onPause()V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/h;",
+          "expected": "onDestroy\\(\\)V",
+          "matched": [
+            "onDestroy()V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/m;",
+          "expected": "onResume\\(\\)V",
+          "matched": [
+            "onResume()V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/m;",
+          "expected": "onPause\\(\\)V",
+          "matched": [
+            "onPause()V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/m;",
+          "expected": "onDestroy\\(\\)V",
+          "matched": [
+            "onDestroy()V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/panel/m;",
+          "expected": "a\\(Lcom/oplus/deviceplugin/sdk/ui/panel/m;Ljava/util/List;Lcom/android/systemui/plugins/qs/IHostAbility;Lcom/android/systemui/plugins/qs/SpanSizeInPlugin;\\)V",
+          "matched": [
+            "a(Lcom/oplus/deviceplugin/sdk/ui/panel/m;Ljava/util/List;Lcom/android/systemui/plugins/qs/IHostAbility;Lcom/android/systemui/plugins/qs/SpanSizeInPlugin;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/view/separatecardview/SquareDeviceCardView;",
+          "expected": "d\\(Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;\\)V",
+          "matched": [
+            "d(Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/view/separatecardview/RectangleDeviceCardView;",
+          "expected": "e\\(Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;\\)V",
+          "matched": [
+            "e(Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/ui/view/d;",
+          "expected": "f\\(Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;\\)V",
+          "matched": [
+            "f(Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/utils/PlatformUtils;",
+          "expected": "getIsEditMode\\(\\)Z",
+          "matched": [
+            "getIsEditMode()Z"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/utils/ViewExtKt;",
+          "expected": "bindDeviceIcon\\(Lcom/oplus/deviceplugin/sdk/ui/view/progressbar/BatteryCircularProgressLayout;Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;Z\\)V",
+          "matched": [
+            "bindDeviceIcon(Lcom/oplus/deviceplugin/sdk/ui/view/progressbar/BatteryCircularProgressLayout;Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;Z)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/utils/ViewExtKt;",
+          "expected": "bindDeviceIconBlurDisable\\(Lcom/oplus/deviceplugin/sdk/ui/view/progressbar/BatteryCircularProgressLayout;Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;Z\\)V",
+          "matched": [
+            "bindDeviceIconBlurDisable(Lcom/oplus/deviceplugin/sdk/ui/view/progressbar/BatteryCircularProgressLayout;Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;Z)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/deviceplugin/sdk/utils/ViewExtKt;",
+          "expected": "bindDeviceIconGlobalTheme\\(Lcom/oplus/deviceplugin/sdk/ui/view/progressbar/BatteryCircularProgressLayout;Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;Z\\)V",
+          "matched": [
+            "bindDeviceIconGlobalTheme(Lcom/oplus/deviceplugin/sdk/ui/view/progressbar/BatteryCircularProgressLayout;Lcom/oplus/deviceplugin/sdk/entity/PanelDevice;Z)V"
+          ],
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "file": "MyDevices.apk",
+      "bytes": 46076649,
+      "sha256": "d9cb014fc6ee52f947fa35f327e807c89cac77e299e36205813e4f25b9d9c68a",
+      "checks": [
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/DeviceCardHomeActivity;",
+          "expected": "s1\\(Ljava/util/List;ZZ\\)V",
+          "matched": [
+            "s1(Ljava/util/List;ZZ)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/DeviceCardHomeActivity;",
+          "expected": "j1\\(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;Ljava/util/List;\\)V",
+          "matched": [
+            "j1(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;Ljava/util/List;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;",
+          "expected": "<init>\\(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/oplus/mydevices/domain/entities/plugin/DeviceStatus;Lcom/oplus/mydevices/domain/entities/plugin/DeviceStatus;Lcom/oplus/mydevices/domain/entities/plugin/DeviceStatus;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;ZZZLcom/oplus/mydevices/domain/entities/device/BatteryInfo;Lcom/oplus/mydevices/domain/entities/device/BatteryInfo;Lcom/oplus/mydevices/domain/entities/device/BatteryInfo;Lcom/oplus/mydevices/domain/entities/device/BatteryInfo;Ljava/lang/Boolean;ZLjava/lang/String;Lcom/oplus/mydevices/domain/entities/cards/DeviceAbnormalState;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Lcom/oplus/mydevices/domain/entities/cards/StatusRing;\\)V",
+          "matched": [
+            "<init>(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/oplus/mydevices/domain/entities/plugin/DeviceStatus;Lcom/oplus/mydevices/domain/entities/plugin/DeviceStatus;Lcom/oplus/mydevices/domain/entities/plugin/DeviceStatus;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;ZZZLcom/oplus/mydevices/domain/entities/device/BatteryInfo;Lcom/oplus/mydevices/domain/entities/device/BatteryInfo;Lcom/oplus/mydevices/domain/entities/device/BatteryInfo;Lcom/oplus/mydevices/domain/entities/device/BatteryInfo;Ljava/lang/Boolean;ZLjava/lang/String;Lcom/oplus/mydevices/domain/entities/cards/DeviceAbnormalState;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Lcom/oplus/mydevices/domain/entities/cards/StatusRing;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;",
+          "expected": "getId\\(\\)Ljava/lang/String;",
+          "matched": [
+            "getId()Ljava/lang/String;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;",
+          "expected": "getName\\(\\)Ljava/lang/String;",
+          "matched": [
+            "getName()Ljava/lang/String;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;",
+          "expected": "setDeviceType\\(Lcom/oplus/mydevices/domain/entities/device/DeviceType;\\)V",
+          "matched": [
+            "setDeviceType(Lcom/oplus/mydevices/domain/entities/device/DeviceType;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;",
+          "expected": "setDisplayState\\(Lcom/oplus/mydevices/domain/entities/cards/DeviceCardDisplayState;\\)V",
+          "matched": [
+            "setDisplayState(Lcom/oplus/mydevices/domain/entities/cards/DeviceCardDisplayState;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/domain/entities/plugin/DeviceStatus;",
+          "expected": "<init>\\(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;\\)V",
+          "matched": [
+            "<init>(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/domain/entities/cards/DeviceCardDisplayState$Companion;",
+          "expected": "fromDeviceData\\(Lcom/oplus/mydevices/domain/entities/device/DeviceType;ZLcom/oplus/mydevices/domain/entities/device/ConnectState;Z\\)Lcom/oplus/mydevices/domain/entities/cards/DeviceCardDisplayState;",
+          "matched": [
+            "fromDeviceData(Lcom/oplus/mydevices/domain/entities/device/DeviceType;ZLcom/oplus/mydevices/domain/entities/device/ConnectState;Z)Lcom/oplus/mydevices/domain/entities/cards/DeviceCardDisplayState;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Laa/un;",
+          "expected": "h\\(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;\\)V",
+          "matched": [
+            "h(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/quickapp/homecard/view/IndicatorButtonView;",
+          "expected": "k\\(Lcom/oplus/mydevices/domain/entities/cards/CastStatus;Z\\)V",
+          "matched": [
+            "k(Lcom/oplus/mydevices/domain/entities/cards/CastStatus;Z)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/quickapp/homecard/view/IndicatorButtonView;",
+          "expected": "setDeviceType\\(Lcom/oplus/mydevices/domain/entities/device/DeviceType;\\)V",
+          "matched": [
+            "setDeviceType(Lcom/oplus/mydevices/domain/entities/device/DeviceType;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/adapter/DeviceCardAdapter;",
+          "expected": "J\\(Ljava/util/List;\\)V",
+          "matched": [
+            "J(Ljava/util/List;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/c;",
+          "expected": "a\\(\\)Ljava/lang/String;",
+          "matched": [
+            "a()Ljava/lang/String;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/c$a;",
+          "expected": "<init>\\(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;Lcom/oplus/mydevices/deviceui/devicecard/HomeSection;\\)V",
+          "matched": [
+            "<init>(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;Lcom/oplus/mydevices/deviceui/devicecard/HomeSection;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/c$a;",
+          "expected": "b\\(\\)Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;",
+          "matched": [
+            "b()Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/c$c;",
+          "expected": "<init>\\(Lcom/oplus/mydevices/deviceui/devicecard/HomeSection;Ljava/lang/String;\\)V",
+          "matched": [
+            "<init>(Lcom/oplus/mydevices/deviceui/devicecard/HomeSection;Ljava/lang/String;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Laa/Ln;",
+          "expected": "d\\(Ljava/lang/String;Ljava/lang/String;Lcom/oplus/mydevices/domain/entities/device/DeviceType;Ljava/lang/Integer;\\)V",
+          "matched": [
+            "d(Ljava/lang/String;Ljava/lang/String;Lcom/oplus/mydevices/domain/entities/device/DeviceType;Ljava/lang/Integer;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Laa/Ln;",
+          "expected": "b\\(\\)V",
+          "matched": [
+            "b()V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/view/homecard/HomeCardView;",
+          "expected": "u\\(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;\\)V",
+          "matched": [
+            "u(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;)V"
+          ],
+          "ok": true
+        },
+        {
+          "class": "Lcom/oplus/mydevices/deviceui/devicecard/view/homecard/HomeCardView;",
+          "expected": "dispatchTouchEvent\\(Landroid/view/MotionEvent;\\)Z",
+          "matched": [
+            "dispatchTouchEvent(Landroid/view/MotionEvent;)Z"
+          ],
+          "ok": true
+        }
+      ],
+      "ok": true
+    }
+  ],
+  "mydevices_version": "17.25.10"
+}

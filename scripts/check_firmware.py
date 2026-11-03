@@ -81,6 +81,19 @@ TARGETS = {
             r"fromDeviceData\(Lcom/oplus/mydevices/domain/entities/device/DeviceType;ZLcom/oplus/mydevices/domain/entities/device/ConnectState;Z\)Lcom/oplus/mydevices/domain/entities/cards/DeviceCardDisplayState;",
         ],
         "Laa/un;": [r"h\(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;\)V"],
+        "Lcom/oplus/mydevices/quickapp/homecard/view/IndicatorButtonView;": [
+            r"k\(Lcom/oplus/mydevices/domain/entities/cards/CastStatus;Z\)V",
+            r"setDeviceType\(Lcom/oplus/mydevices/domain/entities/device/DeviceType;\)V",
+        ],
+        "Lcom/oplus/mydevices/deviceui/devicecard/adapter/DeviceCardAdapter;": [r"J\(Ljava/util/List;\)V"],
+        "Lcom/oplus/mydevices/deviceui/devicecard/c;": [r"a\(\)Ljava/lang/String;"],
+        "Lcom/oplus/mydevices/deviceui/devicecard/c$a;": [
+            r"<init>\(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;Lcom/oplus/mydevices/deviceui/devicecard/HomeSection;\)V",
+            r"b\(\)Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;",
+        ],
+        "Lcom/oplus/mydevices/deviceui/devicecard/c$c;": [
+            r"<init>\(Lcom/oplus/mydevices/deviceui/devicecard/HomeSection;Ljava/lang/String;\)V",
+        ],
         "Laa/Ln;": [r"d\(Ljava/lang/String;Ljava/lang/String;Lcom/oplus/mydevices/domain/entities/device/DeviceType;Ljava/lang/Integer;\)V", r"b\(\)V"],
         "Lcom/oplus/mydevices/deviceui/devicecard/view/homecard/HomeCardView;": [
             r"u\(Lcom/oplus/mydevices/domain/entities/cards/QuickCardDeviceData;\)V",
@@ -125,6 +138,12 @@ TARGETS = {
             r"changeUser\(Landroid/os/UserHandle;\)V",
             r"getFavoritesForComponent\(Landroid/content/ComponentName;\)Ljava/util/List;",
             r"getCurrentUserId\(\)I",
+        ],
+        "Lcom/android/systemui/controls/controller/StatefulControlSubscriber;": [
+            r"onError\(Landroid/os/IBinder;Ljava/lang/String;\)V", r"onComplete\(Landroid/os/IBinder;\)V",
+        ],
+        "Lcom/android/systemui/controls/controller/ControlsProviderLifecycleManager$serviceConnection$1;": [
+            r"onServiceDisconnected\(Landroid/content/ComponentName;\)V",
         ],
         "Lcom/android/systemui/controls/controller/StructureInfo;": [
             r"<init>\(Landroid/content/ComponentName;Ljava/lang/CharSequence;Ljava/util/List;\)V",

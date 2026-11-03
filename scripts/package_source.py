@@ -11,7 +11,7 @@ dist = root / 'dist'
 apk = dist / f'ColorOS-MiHomeBridge-{version}.apk'
 if not apk.is_file():
     raise SystemExit('Build the release before packaging.')
-files = [root / name for name in ['README.md', '.gitignore', 'build.gradle.kts', 'settings.gradle.kts',
+files = [root / name for name in ['README.md', '.gitignore', '.gitattributes', 'build.gradle.kts', 'settings.gradle.kts',
                                  'gradle.properties', 'gradlew', 'gradlew.bat', 'app/build.gradle.kts']]
 for directory in ['app/src', 'gradle', 'scripts', 'docs']:
     files.extend(path for path in (root / directory).rglob('*')

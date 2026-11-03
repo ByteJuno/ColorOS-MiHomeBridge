@@ -26,11 +26,12 @@ public class DeviceCenterPolicyTest {
     }
     @Test public void deadPageExpiresAndRenewalExtendsItsLease() {
         var leases = new DeviceCenterPolicy.Leases();
+        long ttl = DeviceCenterPolicy.LEASE_MS;
         leases.update("page", true, 0);
-        assertTrue(leases.active(5999));
-        leases.update("page", true, 5000);
-        assertTrue(leases.active(10000));
-        assertFalse(leases.active(11000));
+        assertTrue(leases.active(ttl - 1));
+        leases.update("page", true, ttl - 1000);
+        assertTrue(leases.active(ttl * 2 - 1001));
+        assertFalse(leases.active(ttl * 2 - 1000));
     }
     @Test public void nativeReorderNeverPersistsInjectedIds() {
         assertEquals(List.of("headset", "pad"), DeviceCenterPolicy.nativeOrder(

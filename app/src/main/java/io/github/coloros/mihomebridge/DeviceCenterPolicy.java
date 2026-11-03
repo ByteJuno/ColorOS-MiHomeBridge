@@ -8,7 +8,8 @@ import java.util.function.Function;
 
 /** Pure rules shared by the native center transport and its list adapter. */
 final class DeviceCenterPolicy {
-    static final long LEASE_MS = 6000;
+    static final long LEASE_MS = 30000;
+    static final int MAX_ICON_EDGE = 256;
     static final int MAX_ROWS = 32, MAX_ICON_BYTES = 16 * 1024, MAX_TOTAL_ICON_BYTES = 192 * 1024;
 
     static boolean authorized(int uid, String pkg, int installedUid, int currentUser, long sent, long now) {
@@ -42,6 +43,7 @@ final class DeviceCenterPolicy {
             deadlines.values().removeIf(end -> end <= now);
             return !deadlines.isEmpty();
         }
+        boolean contains(String token, long now) { active(now); return deadlines.containsKey(token); }
         void clear() { deadlines.clear(); }
     }
     private DeviceCenterPolicy() {}

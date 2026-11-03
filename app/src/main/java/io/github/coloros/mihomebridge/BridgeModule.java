@@ -38,6 +38,8 @@ public final class BridgeModule extends XposedModule {
     private final BridgeState state = new BridgeState();
     private volatile boolean miHookInstalled;
     private NativeDeviceSpace nativeSpace;
+    private MiHomeRuntime runtime;
+    private DeviceCenterHost centerHost;
     private final ThreadLocal<Boolean> providerRequest = ThreadLocal.withInitial(() -> false);
 
     @Override public void onPackageLoaded(PackageLoadedParam param) {
@@ -48,14 +50,28 @@ public final class BridgeModule extends XposedModule {
             preferences = getRemotePreferences(BridgeContract.PREFS);
             ClassLoader loader = param.getDefaultClassLoader();
             if (pkg.equals(BridgeContract.MYDEVICES)) {
-                new NativeDeviceCenter(this, this::failure).install(loader);
-                log(Log.INFO, TAG, "Native device center hooks installed");
+                boolean ready;
+                String issue;
+                try { new NativeDeviceCenter(this, this::enabled, this::failure).install(loader); ready = true; issue = ""; }
+                catch (Throwable error) { failure("Device center adapter is incompatible", error); ready = false; issue = error.getClass().getSimpleName() + ": " + error.getMessage(); }
+                final boolean compatible = ready; final String detail = issue;
+                hook(Application.class.getDeclaredMethod("onCreate")).intercept(chain -> {
+                    Object result = chain.proceed();
+                    if (chain.getThisObject() instanceof Application app && pkg.equals(app.getPackageName())) {
+                        try { NativeDeviceCenter.report(app, compatible, detail); }
+                        catch (RuntimeException error) { failure("Device center diagnostic report failed", error); }
+                    }
+                    return result;
+                });
                 return;
             }
             if (pkg.equals(BridgeContract.MIHOME)) installMiHome(loader);
             else {
                 captureControls(loader);
-                nativeSpace = new NativeDeviceSpace(this, this::enabled, () -> controlsComponent.get(), this::failure);
+                runtime = new MiHomeRuntime(this, this::enabled, () -> controlsComponent.get(), () -> preferences, this::failure);
+                try { runtime.install(loader); }
+                catch (Throwable error) { failure("MiHome backend is not compatible", error); }
+                nativeSpace = new NativeDeviceSpace(this, this::enabled, runtime, this::failure);
                 try { nativeSpace.install(loader); }
                 catch (Throwable error) { failure("Native Device Space is not compatible", error); }
             }
@@ -158,6 +174,9 @@ public final class BridgeModule extends XposedModule {
                 return result;
             });
         }
+        try { captureTiles(loader); } catch (ReflectiveOperationException error) { failure("Optional Controls tile is not compatible", error); }
+    }
+    private void captureTiles(ClassLoader loader) throws ReflectiveOperationException {
         Class<?> interactor = Class.forName("com.android.systemui.qs.pipeline.domain.interactor.CurrentTilesInteractorImpl", false, loader);
         tileSpecType = Class.forName("com.android.systemui.qs.pipeline.shared.TileSpec", false, loader);
         Object companion = tileSpecType.getField("Companion").get(null);
@@ -175,7 +194,10 @@ public final class BridgeModule extends XposedModule {
 
     private void attach(Application app, String pkg) {
         if (!registered.compareAndSet(false, true)) return;
-        if (pkg.equals(BridgeContract.SYSTEMUI)) new DeviceCenterHost(nativeSpace, this::enabled, this::failure).register(app);
+        if (pkg.equals(BridgeContract.SYSTEMUI)) {
+            centerHost = new DeviceCenterHost(runtime, this::failure);
+            centerHost.register(app);
+        }
         app.registerReceiver(new BroadcastReceiver() {
             @Override public void onReceive(Context context, Intent intent) {
                 if (!BridgeContract.ACTION.equals(intent.getAction())) return;
@@ -259,15 +281,27 @@ public final class BridgeModule extends XposedModule {
 
     private void handleSystemUi(Context context, String op, Bundle result) throws Exception {
         Object component = controlsComponent.get();
-        boolean available = component != null && tilesInteractor.get() != null
+        boolean available = component != null
                 && ((Optional<?>) invoke(component, "getControlsController")).isPresent();
         SharedPreferences backup = context.getSharedPreferences(BridgeContract.BACKUP, Context.MODE_PRIVATE);
-        NativeControlsTile tile = available ? nativeTile() : null;
+        NativeControlsTile tile = available && tilesInteractor.get() != null ? nativeTile() : null;
         if (BridgeContract.SYNC.equals(op)) {
-            if (nativeSpace != null) nativeSpace.settingsChanged();
+            if (runtime != null) runtime.settingsChanged();
+        } else if (BridgeContract.RECONNECT.equals(op)) {
+            if (runtime == null || !runtime.enabled()) throw new IllegalStateException("请先启用米家桥接");
+            runtime.centerVisible("settings-probe", true); runtime.session.retry();
+        } else if (BridgeContract.DEVICES.equals(op)) {
+            if (runtime == null || !available) throw new IllegalStateException("系统设备服务尚未就绪");
+            java.util.ArrayList<Bundle> rows = new java.util.ArrayList<>();
+            for (MiHomeSession.Entry entry : runtime.session.managementEntries()) {
+                if (rows.size() == 256) break;
+                Bundle row = new Bundle(); row.putString("id", entry.id()); row.putString("title", entry.title()); row.putString("room", entry.subtitle()); rows.add(row);
+            }
+            result.putInt("user", runtime.user()); result.putParcelableArrayList("devices", rows);
         } else if (BridgeContract.ADD.equals(op)) {
             if (!enabled()) throw new IllegalStateException("请先启用模块开关。");
             if (!available) throw new IllegalStateException("当前系统未提供原生设备控制接口。");
+            if (tile == null) throw new IllegalStateException("完整面板快捷入口接口不匹配，可直接打开设备空间。");
             if (!providerEnabled(context)) throw new IllegalStateException("请先打开一次米家，确认已登录，再重试。");
             if (!tile.isPresent()) {
                 if (!backup.edit().putBoolean("native_tile_added", true).remove("tile_added").commit())
@@ -277,7 +311,7 @@ public final class BridgeModule extends XposedModule {
             }
         } else if (BridgeContract.RESTORE.equals(op)) {
             if (enabled()) throw new IllegalStateException("请先关闭模块开关，再恢复。");
-            if (nativeSpace != null) nativeSpace.settingsChanged();
+            if (runtime != null) runtime.settingsChanged();
             if (backup.getBoolean("native_tile_added", false)) {
                 if (tile == null) throw new IllegalStateException("原生快捷开关接口尚未就绪。");
                 tile.remove();
@@ -305,6 +339,8 @@ public final class BridgeModule extends XposedModule {
         result.putBoolean("controls", available);
         result.putBoolean("tile", tile != null && tile.isPresent());
         if (nativeSpace != null) nativeSpace.status(result);
+        if (runtime != null) runtime.status(result);
+        if (centerHost != null) centerHost.status(result);
     }
 
     private NativeControlsTile nativeTile() throws ReflectiveOperationException {

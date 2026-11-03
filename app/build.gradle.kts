@@ -13,8 +13,9 @@ android {
         applicationId = "io.github.coloros.mihomebridge"
         minSdk = 37
         targetSdk = 37
-        versionCode = 7
-        versionName = "0.3.0-preview"
+        versionCode = 8
+        versionName = "0.4.0-preview"
+        testInstrumentationRunner = "io.github.coloros.mihomebridge.BridgeSmokeInstrumentation"
     }
     signingConfigs {
         if (moduleSigning.isNotEmpty()) create("module") {
@@ -26,6 +27,7 @@ android {
         }
     }
     buildTypes {
+        debug { signingConfig = signingConfigs.findByName("module") ?: signingConfig }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.findByName("module")

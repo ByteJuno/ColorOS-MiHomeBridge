@@ -37,12 +37,10 @@ final class NativeDeviceSpace {
     private final BiConsumer<String, Throwable> failure;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Map<Object, Object> listeners = new WeakHashMap<>();
-    private final Map<Object, Boolean> panels = new WeakHashMap<>();
     private final Map<ImageView, Object> iconRequests = new WeakHashMap<>();
-    private final Map<UserHandle, IBinder> providerTokens = new ConcurrentHashMap<>();
     private final MiHomeSession session;
-    private final DeviceCenterPolicy.Leases centerLeases = new DeviceCenterPolicy.Leases();
-    private final Runnable expireCenter = this::expireCenter;
+    private final MiHomeRuntime runtime;
+    private long lastBound;
     private final Runnable refresh = this::refreshPanels;
     private Class<?> panelInfo, panelState, deviceType, statusType, itemType, connectType, coordinationType;
     private Constructor<?> panelConstructor, deviceConstructor;
@@ -50,13 +48,10 @@ final class NativeDeviceSpace {
     private volatile boolean installed;
     private volatile int boundCards;
 
-    NativeDeviceSpace(XposedModule module, BooleanSupplier enabled, Supplier<Object> controls,
-                      BiConsumer<String, Throwable> failure) {
-        this.module = module; this.enabled = enabled; this.failure = failure;
-        session = new MiHomeSession(enabled, controls, failure, () -> {
-            main.removeCallbacks(refresh);
-            main.postDelayed(refresh, 60);
-        });
+    NativeDeviceSpace(XposedModule module, BooleanSupplier enabled, MiHomeRuntime runtime, BiConsumer<String, Throwable> failure) {
+        this.module = module; this.enabled = enabled; this.runtime = runtime; this.failure = failure;
+        session = runtime.session;
+        runtime.addListener(() -> { main.removeCallbacks(refresh); main.postDelayed(refresh, 60); });
     }
 
     void install(ClassLoader loader) throws Exception {
@@ -84,25 +79,6 @@ final class NativeDeviceSpace {
                 type(loader, "ui.view.separatecardview.RectangleDeviceCardView").getDeclaredMethod("e", device),
                 type(loader, "ui.view.d").getDeclaredMethod("f", device)
         };
-        Class<?> binding = Class.forName("com.android.systemui.controls.controller.ControlsBindingControllerImpl", false, loader);
-        Constructor<?> bindingCtor = binding.getConstructor(android.content.Context.class,
-                Class.forName("com.android.systemui.util.concurrency.DelayableExecutor", false, loader),
-                Class.forName("dagger.Lazy", false, loader),
-                Class.forName("com.android.systemui.controls.controller.PackageUpdateMonitor$Factory", false, loader),
-                Class.forName("com.android.systemui.settings.UserTracker", false, loader));
-        Class<?> lifecycle = Class.forName("com.android.systemui.controls.controller.ControlsProviderLifecycleManager", false, loader);
-        Constructor<?> lifecycleCtor = lifecycle.getConstructor(android.content.Context.class,
-                Class.forName("com.android.systemui.util.concurrency.DelayableExecutor", false, loader),
-                Class.forName("android.service.controls.IControlsActionCallback$Stub", false, loader),
-                UserHandle.class, ComponentName.class,
-                Class.forName("com.android.systemui.controls.controller.PackageUpdateMonitor$Factory", false, loader));
-        Field tokenField = lifecycle.getDeclaredField("token");
-        Field intentField = lifecycle.getDeclaredField("intent");
-        if (tokenField.getType() != IBinder.class || intentField.getType() != Intent.class)
-            throw new NoSuchFieldException("Controls provider token / intent shape");
-        tokenField.setAccessible(true); intentField.setAccessible(true);
-        Class<?> controller = Class.forName("com.android.systemui.controls.controller.ControlsControllerImpl", false, loader);
-        Method changeUser = controller.getDeclaredMethod("changeUser", UserHandle.class);
         Class<?> progress = type(loader, "ui.view.progressbar.BatteryCircularProgressLayout");
         Class<?> viewUtils = type(loader, "utils.ViewExtKt");
         Method[] icons = {
@@ -113,32 +89,6 @@ final class NativeDeviceSpace {
         Class<?> span = Class.forName("com.android.systemui.plugins.qs.SpanSizeInPlugin", false, loader);
         Class<?> ability = Class.forName("com.android.systemui.plugins.qs.IHostAbility", false, loader);
         Method submit = panelTypes[1].getDeclaredMethod("a", panelTypes[1], List.class, ability, span);
-        session.prepare(loader);
-        module.hook(lifecycleCtor).intercept(chain -> {
-            Object result = chain.proceed();
-            if (MiHomeSession.SERVICE.equals(chain.getArg(4))) {
-                // Android caches onBind() for equal service intents, including its token.
-                // Both independent subscribers must use that same per-user token. Their
-                // subscriptions, cancellation and action callbacks remain separate.
-                try {
-                    UserHandle user = (UserHandle) chain.getArg(3);
-                    IBinder token = providerTokens.computeIfAbsent(user, key -> new Binder());
-                    Object target = chain.getThisObject();
-                    Intent intent = (Intent) intentField.get(target);
-                    Bundle callback = intent.getBundleExtra("CALLBACK_BUNDLE");
-                    if (callback == null) throw new IllegalStateException("Missing controls callback bundle");
-                    tokenField.set(target, token);
-                    callback.putBinder("CALLBACK_TOKEN", token);
-                    intent.putExtra("CALLBACK_BUNDLE", callback);
-                } catch (Exception error) { failure.accept("Cannot align MiHome provider callback token", error); }
-            }
-            return result;
-        });
-        module.hook(bindingCtor).intercept(chain -> {
-            Object result = chain.proceed();
-            session.capture(bindingCtor, chain.getArgs().toArray());
-            return result;
-        });
         module.hook(initial).intercept(chain -> {
             Object original = chain.proceed();
             try { return merge(original); }
@@ -173,7 +123,7 @@ final class NativeDeviceSpace {
                         if (editing()) return false;
                         session.click(controlId, true); return true;
                     });
-                    boundCards++;
+                    boundCards++; lastBound = SystemClock.elapsedRealtime();
                 }
             } catch (Exception error) { failure.accept("Device Space card binding failed", error); }
             return result;
@@ -200,60 +150,26 @@ final class NativeDeviceSpace {
             } catch (Exception error) { failure.accept("Device Space capacity check failed", error); }
             return chain.proceed(args);
         });
-        module.hook(changeUser).intercept(chain -> {
-            centerLeases.clear();
-            updateVisibility();
-            session.reset();
-            return chain.proceed();
-        });
         installed = true;
     }
 
-    private void panelVisible(Object panel, boolean visible) {
-        synchronized (panels) {
-            if (visible) panels.put(panel, true); else panels.remove(panel);
-            updateVisibility();
-        }
-    }
-
-    private void updateVisibility() {
-        synchronized (panels) {
-            session.setVisible(!panels.isEmpty() || centerLeases.active(SystemClock.elapsedRealtime()));
-        }
-    }
-
-    void centerVisible(String token, boolean value) {
-        centerLeases.update(token, value, SystemClock.elapsedRealtime());
-        updateVisibility();
-        main.removeCallbacks(expireCenter);
-        if (centerLeases.active(SystemClock.elapsedRealtime())) main.postDelayed(expireCenter, DeviceCenterPolicy.LEASE_MS);
-    }
-
-    private void expireCenter() {
-        updateVisibility();
-        if (centerLeases.active(SystemClock.elapsedRealtime())) main.postDelayed(expireCenter, 1000);
-    }
-
-    List<MiHomeSession.Entry> centerEntries() { return installed ? session.entries() : List.of(); }
-    PendingIntent centerDetail(String id) { return installed ? session.detailsIntent(id) : null; }
-    int currentUserId() { return session.currentUserId(); }
-
-    void settingsChanged() { session.reset(); }
-
+    private void panelVisible(Object panel, boolean visible) { runtime.panelVisible(panel, visible); }
+    void settingsChanged() { runtime.settingsChanged(); }
     void status(Bundle result) {
         result.putBoolean("native_space", installed);
-        result.putBoolean("native_binding", session.isReady());
-        result.putBoolean("native_visible", session.isVisible());
-        result.putInt("native_devices", session.entries().size());
         result.putInt("native_bound_cards", boundCards);
-        result.putBoolean("center_visible", centerLeases.active(SystemClock.elapsedRealtime()));
+        result.putLong("native_last_bind", lastBound);
+        result.putBoolean("native_panel_active", installed && runtime.hasPanels() && lastBound > 0);
     }
 
     private Object merge(Object original) throws Exception {
         if (!installed || original == null) return original;
-        List<MiHomeSession.Entry> entries = session.entries();
+        List<MiHomeSession.Entry> entries = runtime.entries();
         List<?> existing = (List<?>) HostReflect.get(original, "getPanelDevices");
-        if (entries.isEmpty()) return original;
+        if (entries.isEmpty() && existing.stream().noneMatch(item -> {
+            try { return ((String) HostReflect.get(item, "getDeviceId")).startsWith(DeviceSpacePolicy.PREFIX); }
+            catch (Exception error) { return false; }
+        })) return original;
         Object oldState = HostReflect.get(original, "getPanelState");
         // Keep the vendor's privacy-consent page intact.
         if ("PRIVACY".equals(oldState.toString())) return original;
@@ -263,12 +179,12 @@ final class NativeDeviceSpace {
             try { return (String) HostReflect.get(item, "getDeviceId"); }
             catch (Exception error) { throw new IllegalStateException(error); }
         });
-        return panelConstructor.newInstance(HostReflect.enumValue(panelState, "DEVICE_LIST"), combined);
+        return panelConstructor.newInstance(combined.isEmpty() ? oldState : HostReflect.enumValue(panelState, "DEVICE_LIST"), combined);
     }
 
     private Object card(MiHomeSession.Entry entry) throws Exception {
         Control control = entry.control();
-        boolean ready = control != null && control.getStatus() == Control.STATUS_OK;
+        boolean ready = control != null && !entry.stale() && control.getStatus() == Control.STATUS_OK;
         boolean on = ready && MiHomeSession.isOn(control);
         String text = statusText(entry);
         Object status = statusType.getConstructor(String.class, String.class, Integer.class)
@@ -282,11 +198,12 @@ final class NativeDeviceSpace {
 
     static String statusText(MiHomeSession.Entry entry) {
         Control control = entry.control();
-        boolean ready = control != null && control.getStatus() == Control.STATUS_OK;
+        boolean ready = control != null && !entry.stale() && control.getStatus() == Control.STATUS_OK;
         String text;
         if (entry.pending()) text = "正在执行…";
         else if (entry.message() != null) text = entry.message();
         else if (control == null) text = "正在连接…";
+        else if (entry.stale()) text = control.getStatusText().length() == 0 ? "正在重连…" : control.getStatusText() + " · 正在重连";
         else if (!ready) text = switch (control.getStatus()) {
             case Control.STATUS_NOT_FOUND -> "设备已移除";
             case Control.STATUS_DISABLED -> "设备不可用";

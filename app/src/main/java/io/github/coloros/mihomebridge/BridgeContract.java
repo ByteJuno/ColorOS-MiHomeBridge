@@ -8,6 +8,10 @@ final class BridgeContract {
     static final String HOST_ACTION = MODULE + ".DEVICE_CENTER";
     static final String CENTER_SNAPSHOT = "center_snapshot", CENTER_DETAIL = "center_detail", CENTER_CLOSE = "center_close";
     static final String CENTER_OPEN = "open_center";
+    static final String CENTER_SUBSCRIBE = "center_subscribe", CENTER_PING = "center_ping", CENTER_ACK = "center_ack";
+    static final String CENTER_ACTION = "center_action", CENTER_RETRY = "center_retry", CENTER_REPORT = "center_report";
+    static final String DEVICES = "devices";
+    static final String RECONNECT = "reconnect";
     static final String SERVICE = "com.xiaomi.smarthome.controls.MiControlsProviderService";
     static final String ACTION = MODULE + ".COMMAND";
     static final String PERMISSION = MODULE + ".permission.COMMAND";
