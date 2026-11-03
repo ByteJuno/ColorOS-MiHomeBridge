@@ -6,6 +6,12 @@ import java.util.Set;
 import static org.junit.Assert.*;
 
 public class RecoveryAndLayoutTest {
+    @Test public void nativeBadgeCanBeAbsentWithoutUnboxingAndPendingSuppressesWarnings() {
+        assertNull(DeviceSpacePolicy.displayEvent(false, false, 0));
+        assertEquals(Integer.valueOf(DeviceSpacePolicy.EVENT_WARNING), DeviceSpacePolicy.displayEvent(false, true, 0));
+        assertEquals(Integer.valueOf(DeviceSpacePolicy.EVENT_WARNING), DeviceSpacePolicy.displayEvent(false, false, DeviceSpacePolicy.EVENT_WARNING));
+        assertNull(DeviceSpacePolicy.displayEvent(true, true, DeviceSpacePolicy.EVENT_WARNING));
+    }
     @Test public void retriesAreBoundedAndSuccessRestoresTheBudget() {
         ReconnectPolicy policy = new ReconnectPolicy();
         for (long expected : new long[]{1000, 2000, 4000, 8000, 16000, -1, -1}) assertEquals(expected, policy.nextDelay());

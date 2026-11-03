@@ -86,7 +86,7 @@ final class NativeDeviceCenter {
         List<Object> original;
         List<CenterDevice> rows = List.of();
         boolean empty, noNetwork, running, subscribed, groupRooms;
-        int generation;
+        int generation, rendered;
         long serial;
         String instance = "", phase = "connecting";
         Runnable heartbeat, reconnect, refresh, ack;
@@ -148,7 +148,10 @@ final class NativeDeviceCenter {
                 List<Object> additions = new ArrayList<>(); for (CenterDevice row : page.rows) additions.add(card(row, page.busy.contains(row.id())));
                 merged = DeviceCenterPolicy.merge(originals, additions, NativeDeviceCenter::id, prepend.getAsBoolean());
             } catch (Exception error) { failure.accept("Device center merge failed", error); return chain.proceed(); }
-            return chain.proceed(new Object[]{merged, page.rows.isEmpty() ? page.empty : false, page.noNetwork});
+            Object result = chain.proceed(new Object[]{merged, page.rows.isEmpty() ? page.empty : false, page.noNetwork});
+            int rendered = 0; for (Object item : merged) if (id(item).startsWith(DeviceSpacePolicy.PREFIX)) rendered++;
+            if (page.rendered != rendered) { page.rendered = rendered; if (valid(page) && page.subscribed) acknowledge(page); }
+            return result;
         });
         module.hook(reordered).intercept(chain -> {
             Object moved = chain.getArg(0);
@@ -436,7 +439,7 @@ final class NativeDeviceCenter {
         catch (Exception error) { failure.accept("Device center refresh failed", error); }
     }
     private Object card(CenterDevice row, boolean busy) throws Exception {
-        Integer event = row.pending() || busy ? null : row.stale() ? DeviceSpacePolicy.EVENT_WARNING : row.eventType() == 0 ? null : row.eventType();
+        Integer event = DeviceSpacePolicy.displayEvent(row.pending() || busy, row.stale(), row.eventType());
         Object status = statusConstructor.newInstance(row.displayStatus(busy), row.room().isBlank() ? "米家" : "米家 · " + row.room(), event, null);
         String key = Base64.getUrlEncoder().withoutPadding().encodeToString(row.id().getBytes(StandardCharsets.UTF_8));
         String image = ICON + key + ":" + row.iconHash() + ":" + Integer.toHexString((row.contentKey() + busy).hashCode());
@@ -505,7 +508,7 @@ final class NativeDeviceCenter {
         BroadcastOptions options = BroadcastOptions.makeBasic(); options.setShareIdentityEnabled(true); options.setDeferralPolicy(BroadcastOptions.DEFERRAL_POLICY_NONE);
         Intent intent = new Intent(BridgeContract.HOST_ACTION).setPackage(BridgeContract.SYSTEMUI).addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
                 .putExtra("operation", operation).putExtra("token", page.token).putExtra(BridgeContract.SENT_AT, SystemClock.elapsedRealtime())
-                .putExtra("client_build", BuildConfig.VERSION_NAME).putExtra("compatible", true).putExtra("process", Application.getProcessName()).putExtra("rendered", page.rows.size());
+                .putExtra("client_build", BuildConfig.VERSION_NAME).putExtra("compatible", true).putExtra("process", Application.getProcessName()).putExtra("rendered", page.rendered);
         Bundle known = new Bundle(); for (CenterDevice row : page.rows) if (row.image() != null && !row.iconHash().isEmpty()) known.putString(row.id(), row.iconHash());
         intent.putExtra("known_icons", known);
         if (extra != null) intent.putExtras(extra); if (reply != null) intent.putExtra("reply", BridgeTransport.remoteReply(reply));

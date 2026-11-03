@@ -43,6 +43,15 @@ public final class BridgeSmokeInstrumentation extends Instrumentation {
             else if (mode.equals("transport_finish")) transportFinish(result);
             else if (mode.equals("status")) { foreground(); result.putAll(command(BridgeContract.STATUS)); }
             else if (mode.equals("status_live")) result.putAll(command(BridgeContract.STATUS));
+            else if (mode.equals("prefs")) {
+                foreground(); command(BridgeContract.STATUS);
+                var prefs = BridgeApplication.framework.getRemotePreferences(BridgeContract.PREFS);
+                int user = android.os.Process.myUid() / 100000;
+                var options = LayoutPreferences.read(prefs, user);
+                result.putInt("settings_user", user); result.putInt("hidden_count", options.hidden().size());
+                result.putInt("order_count", options.order().size()); result.putBoolean("group_rooms", options.groupRooms());
+                result.putLong("settings_revision", prefs.getLong(BridgeContract.REVISION, -1));
+            }
             else if (mode.equals("controls_preview")) preview();
             else if (mode.equals("layout")) layout(result);
             else if (mode.equals("layout_restore")) restoreLayout(result);
@@ -189,6 +198,7 @@ public final class BridgeSmokeInstrumentation extends Instrumentation {
         Bundle before = command(BridgeContract.STATUS);
         check(before.getBoolean("center_compatible"), "current MyDevices hooks reported");
         check(before.getInt("center_clients") > 0, "authenticated subscription active");
+        check(before.getInt("center_rendered") == before.getInt("native_devices") && before.getInt("center_rendered") > 0, "native list accepted the reported bridge cards");
         var stored = getTargetContext().getSharedPreferences("smoke_transport", 0).edit();
         for (String key : new String[]{"center_pushes", "center_heartbeats", "icon_bytes_sent"}) stored.putLong(key, before.getLong(key));
         stored.commit(); result.putInt("rendered", before.getInt("center_rendered"));

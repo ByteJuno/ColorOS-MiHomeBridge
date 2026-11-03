@@ -76,6 +76,13 @@ final class DeviceSpacePolicy {
     /** Native event badge shown next to the status text. */
     static final int EVENT_WARNING = 2;
 
+    static Integer displayEvent(boolean pending, boolean stale, int event) {
+        if (pending) return null;
+        if (stale) return EVENT_WARNING;
+        if (event == 0) return null;
+        return event;
+    }
+
     /**
      * MiHome only publishes a status string through the Controls API, so a percentage in that
      * string is the only battery data the bridge can hand to the native battery ring.
