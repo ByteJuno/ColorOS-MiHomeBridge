@@ -1,0 +1,120 @@
+{
+  "date": "2026-11-03",
+  "version": "0.5.0-preview",
+  "version_code": 10,
+  "apk": "ColorOS-MiHomeBridge-0.5.0-preview.apk",
+  "bytes": 2305687,
+  "sha256": "a9e268fa2e61d19d1731b0f972fc5162a6933f4c5d19fd0b8772523ad9e6057d",
+  "jvm": {
+    "tests": 53,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Error": 0,
+    "Warning": 31
+  },
+  "firmware": {
+    "model": "PLK110",
+    "build": "PLK110_17.0.0.105(CN01)",
+    "mihome": "11.9.625",
+    "systemui": "17.99.02",
+    "mydevices": "17.25.10",
+    "checks": 70,
+    "passed": 70,
+    "baseline": "native-center-baseline-20261103.json"
+  },
+  "signature_v2_verified": true,
+  "zipalign_verified": true,
+  "certificate_sha256": "e1631c0dcb618209c1e81f74c4b03a198a457314bb2141c3931d903d1cab84c0",
+  "device_center": {
+    "original_devices": 4,
+    "mihome_devices": 3,
+    "merged_devices": 7,
+    "custom_icons": 3,
+    "hide_passed": true,
+    "custom_order_passed": true,
+    "room_headers_passed": true,
+    "layout_settings_restored": true,
+    "disable_restores_originals_passed": true,
+    "reenable_passed": true,
+    "cold_management_launch_passed": true,
+    "tested_version": "0.4.0-preview candidate before mainline merge"
+  },
+  "provider_recovery": {
+    "test": "terminate widgetControl only; leave native center visible",
+    "cards_and_icons_retained": true,
+    "automatic_rebind_passed": true,
+    "recovered_phase": "connected",
+    "fresh_devices": 3,
+    "manual_retry_used": false,
+    "tested_version": "0.4.0-preview candidate before mainline merge"
+  },
+  "steady_transport_observation": {
+    "heartbeat_delta": 3,
+    "state_push_delta": 0,
+    "icon_byte_delta": 0,
+    "tested_version": "0.4.0-preview candidate before mainline merge"
+  },
+  "android_simulated_controls": {
+    "checks": 24,
+    "passed": 24,
+    "simulated_ui_actions": 3,
+    "physical_provider_actions": 0,
+    "ui_automation_used": false,
+    "templates": [
+      "Toggle",
+      "ToggleRange",
+      "Range",
+      "TemperatureControl",
+      "Stateless"
+    ],
+    "native_indicator_class_instantiated": true,
+    "programmatic_refresh_does_not_dispatch": true,
+    "stale_controls_disabled": true,
+    "last_tested_version": "0.4.0-preview candidate before mainline merge"
+  },
+  "control_center": {
+    "native_small_cards_loaded": true,
+    "full_panel_state_loaded": true,
+    "native_over_full_panel_passed": true,
+    "full_panel_after_native_passed": true,
+    "tested_version": "0.4.0-preview candidate before mainline merge"
+  },
+  "full_restore_repeated": false,
+  "previous_full_restore_record": "build-verification-0.2.2.json",
+  "physical_device_actions_tested": false,
+  "physical_scenes_tested": false,
+  "lockscreen_interaction_tested": false,
+  "system_user_switch_tested": false,
+  "background_setting": {
+    "package": "com.xiaomi.smarthome",
+    "mode": "allow_all_background",
+    "retained": true
+  },
+  "screen_off_timeout_ms": 600000,
+  "remaining_limits": [
+    "physical appliance switch, brightness, temperature and scene effects",
+    "complex properties continue in MiHome details",
+    "secure lock interaction and system-user switching",
+    "native drag reorder, classic theme and other firmware"
+  ],
+  "merged_mainline_commit": "2b5bfc2087a83e412226a7e8f4383619fe9888db",
+  "device_ui_evidence_version": "0.4.0-preview candidate before mainline merge",
+  "final_build_ui_retested_after_merge": false,
+  "final_build_installed_on_device": true,
+  "screen_timeout_modified": false,
+  "final_backend_build_verified": true,
+  "final_native_adapters_compatible": true,
+  "installed_apk_sha256_verified": true,
+  "phone_download_copy_sha256_verified": true,
+  "ci": {
+    "status": "success",
+    "commit": "9a86d55705af47083c9d71a697c429905b3f5a6b",
+    "url": "https://github.com/ByteJuno/ColorOS-MiHomeBridge/actions/runs/41630690435"
+  },
+  "pending": [
+    "unlock phone to visually retest merged 0.5.0 settings and native cards"
+  ]
+}
